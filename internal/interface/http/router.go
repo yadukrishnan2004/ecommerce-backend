@@ -16,7 +16,12 @@ func RegisterRouter(app *fiber.App) {
 
 	userRepo := memory.NewUserRepo()
 	registerUC := user.NewRegisterUseCase(userRepo)
-	userHandler := handler.NewUserHandler(registerUC)
+	loginUserUC:=user.NewLoginUseCase(userRepo)
+
+	userHandler := handler.NewUserHandler(registerUC,loginUserUC)
 
 	app.Post("/users/register", userHandler.Register)
+	app.Post("/users/login", userHandler.Login)
+
+
 }
