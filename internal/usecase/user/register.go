@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 
+	"github.com/yadukrishnan2004/ecommerce-backend/helper"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain/user"
 )
 
@@ -20,7 +21,12 @@ func (uc *RegisterUserCase) Execute(email,password string) error{
 		return  errors.New("email already registered")
 	}
 
-	u , err:=user.New(email,password)
+	hash,errr:=helper.Hash(password)
+	if errr != nil {
+		return errors.New("please try another password")
+	}
+
+	u , err:=user.New(email,hash)
 	if err != nil {
 		return err
 	}
