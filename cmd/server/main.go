@@ -4,28 +4,26 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/joho/godotenv"
-	"github.com/yadukrishnan2004/ecommerce-backend/internal/config"
-	"github.com/yadukrishnan2004/ecommerce-backend/internal/interface/http"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/repositery"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/infrastructure"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/service"
 )
 
 func main() {
-	if err:=godotenv.Load();err !=nil{
-		log.Println("no env file is found")
-	} 
-	cfg:=config.Load()
-	app := fiber.New()
+	DB,err:=infrastructure.ConnectPostgres()
+	if err != nil {
+		log.Fatal("falile to connect with Database")
+	}
 
-	// Middleware
-	app.Use(recover.New())
-	app.Use(logger.New())
+	app:=fiber.New()
+	userRepo:=repositery.NewUserRepo(DB)
+	userSVC:=service.NewUserService(userRepo)
+	UserHandler:=handler.NewUserHandler(userSVC)
 
-	// helper handler function 
-	http.RegisterRouter(app)
+	api:=app.Group("/")
+	api.Post("register",UserHandler.Register)
 
-		
-		
-	app.Listen(":"+cfg.App_Port)
+	app.Listen(":8080")
+
 }

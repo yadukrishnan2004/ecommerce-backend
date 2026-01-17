@@ -17,8 +17,6 @@ type JWTConfig struct {
 }
 
 
-
-
 func getEnv(key, fallback string) string {
 	if v:=os.Getenv(key);v != "" {
 		return v
