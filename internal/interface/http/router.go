@@ -22,6 +22,4 @@ func RegisterRouter(app *fiber.App) {
 
 	app.Post("/users/register", userHandler.Register)
 	app.Post("/users/login", userHandler.Login)
-
-
 }

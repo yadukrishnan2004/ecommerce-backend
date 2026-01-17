@@ -19,7 +19,7 @@ type LoginRequest struct{
 }
 
 type LoginUseCase interface{
-	Execute(email,password string) error
+	Execute(email,password string)(string,string,error)
 }
 
 
@@ -57,10 +57,15 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return fiber.ErrBadRequest
 	}
-
-	if err := h.loginUC.Execute(req.Email, req.Password); err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, err.Error())
+	access,refresh,err:=h.loginUC.Execute(
+		req.Email,
+		req.Password,
+	)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized,err.Error())
 	}
-
-	return c.SendStatus(fiber.StatusOK)
+	return c.JSON(fiber.Map{
+		"access_token":access,
+		"refresh_token":refresh,
+	})
 }

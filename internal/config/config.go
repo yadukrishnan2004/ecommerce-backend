@@ -1,11 +1,23 @@
 package config
 
-import "os"
+import (
+	"os"
+	"time"
+)
 
 type Config struct {
 	App_Name string
 	App_Port string
 }
+
+type JWTConfig struct {
+	Secret 		string
+	AccessTTL 	time.Duration
+	RefreshTTL  time.Duration
+}
+
+
+
 
 func getEnv(key, fallback string) string {
 	if v:=os.Getenv(key);v != "" {
@@ -21,3 +33,4 @@ func Load() *Config {
 	}
 	return config
 }
+
