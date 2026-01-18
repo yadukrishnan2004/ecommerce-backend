@@ -1,25 +1,22 @@
 package infrastructure
 
 import (
-	"errors"
-	"fmt"
-	"os"
-
+	"log"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 
-func ConnectPostgres() (*gorm.DB,error){
-	dsn:=fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-	os.Getenv("DB_HOST"),
-	os.Getenv("DB_USER"),
-	os.Getenv("DB_PASSWORD"),
-	os.Getenv("DB_NAME"),
-	os.Getenv("DB_PORT"),)
-	DB,err:=gorm.Open(postgres.Open(dsn),&gorm.Config{})
-	if err !=nil{
-		return nil,errors.New("faile connecting data base")
+func ConnectPostgres(dsn string) (*gorm.DB){
+	if dsn == "" {
+		log.Fatal("no dsn found")
+		return  nil
 	}
-	return DB,nil
+	Dsn:=dsn
+	DB,err:=gorm.Open(postgres.Open(Dsn),&gorm.Config{})
+	if err !=nil{
+		log.Fatal("faile to connect with the database")
+		return nil
+	}
+	return DB
 }

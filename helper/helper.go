@@ -21,3 +21,4 @@ func VerifyHash(h,s string)(bool){
 	}
 	return true
 }
+
