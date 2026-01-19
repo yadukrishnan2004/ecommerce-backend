@@ -1,0 +1,25 @@
+# --- Binaries & Build Outputs ---
+# Ignore the actual executable file created when you run 'go build'
+# (Replace 'my-app-name' with your actual binary name if you know it)
+*.exe
+*.test
+*.out
+/bin/
+
+# --- Dependencies ---
+# If you use 'go mod vendor', ignore the vendor folder
+vendor/
+
+# --- Environment Variables (CRITICAL) ---
+# NEVER commit your secrets/passwords to Git!
+.env
+.env.local
+
+# --- IDE/Editor Settings ---
+# You don't want to force your VS Code settings on other developers
+.vscode/
+.idea/
+
+# --- OS System Files ---
+.DS_Store
+Thumbs.db

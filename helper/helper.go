@@ -1,7 +1,11 @@
 package helper
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"math/rand"
+	"strconv"
 
+	"golang.org/x/crypto/bcrypt"
+)
 
 //Hash the password
 func Hash(h string) (string,error){
@@ -20,5 +24,9 @@ func VerifyHash(h,s string)(bool){
 		return false
 	}
 	return true
+}
+
+func GenerateOtp()string{
+	return strconv.Itoa(rand.Intn(900000) + 100000)
 }
 

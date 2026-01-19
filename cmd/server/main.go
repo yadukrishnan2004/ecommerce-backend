@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/notifications"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/repositery"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/config"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
@@ -30,11 +31,18 @@ func main() {
 
 	// setting up the handler layer
 
+
+	nofier:=notifications.NewemailNodifier(cfg.SMTP_HOST,
+									cfg.SMTP_PORT,
+									cfg.SMTP_EMAIL,
+									cfg.SMTP_PASS,
+									cfg.SMTP_FROM)
+
 	//Reopsiterys
 	userRepo:=repositery.NewUserRepo(DB)
 
 	//services
-	userSVC:=service.NewUserService(userRepo)
+	userSVC:=service.NewUserService(userRepo,nofier)
 
 	//handlers
 	UserHandler:=handler.NewUserHandler(userSVC)
