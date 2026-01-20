@@ -7,10 +7,25 @@ import (
 
 type UserHandler struct {
 	svc domain.UserService
+	vrify domain.UserService
 }
 
-func NewUserHandler(svc domain.UserService) *UserHandler{
-	return &UserHandler{svc:svc}
+func NewUserHandler(svc,vrify domain.UserService) *UserHandler{
+	return &UserHandler{
+		svc:svc,
+		vfy:vrify,
+	}
+}
+
+func(h *UserHandler) OtpVerify(c *fiber.Ctx)error{
+	var otp struct{
+		otp string
+	}
+
+	if err:=c.BodyParser(&otp);err != nil {
+		return c.Status(401).JSON(fiber.Map{"error":"invalid input"})
+	}
+	
 }
 
 func (h *UserHandler) Register(c *fiber.Ctx) error{
@@ -29,5 +44,5 @@ func (h *UserHandler) Register(c *fiber.Ctx) error{
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
     }
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "User created"})
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "An OTP sent to your gmail id"})
 }

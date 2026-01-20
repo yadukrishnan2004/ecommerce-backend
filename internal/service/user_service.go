@@ -22,32 +22,63 @@ func NewUserService(repo domain.UserRepositery,otp domain.NotificationClint) dom
 }
 
 
-func (s *userService) Register(ctx context.Context,name,email,password string) error{
-	existing,_:=s.repo.GetByEmail(ctx,email)
-	if existing != nil && existing.ID != 0 {
-        return errors.New("user already exists")
+func (s *userService) Register(ctx context.Context, name, email, password string) error {
+    // Check if user exists
+    user, err := s.repo.GetByEmail(ctx, email)
+
+ 
+    if err == nil && user.ID != 0 {
+        
+        //  already active, stop here.
+        if user.IsActive {
+            return errors.New("user already exists")
+        }
+        hashedPass, err := helper.Hash(password)
+        if err != nil {
+            return err
+        }
+
+        otp := helper.GenerateOtp()
+        
+        // Update the existing user struct fields
+        user.Name = name // Update name in case they fixed a typo
+        user.Password = hashedPass
+        user.Otp = otp
+        user.OtpExpire = time.Now().Add(10 * time.Minute).Unix()
+
+        // Save the updates to the Database
+        if err := s.repo.Update(ctx, user); err != nil {
+            return err
+        }
+
+        // Send the OTP
+        return s.otp.SendOtp(user.Email, user.Otp)
     }
 
-	pass,err:=helper.Hash(password)
-	if err != nil {
-		return err
-	}
-
-	otp:=helper.GenerateOtp()
-
-	user:=&domain.User{
-		Name: 	  name,
-		Email:	  email,
-		Password: pass,
-		IsActive: false,
-		Otp: otp,
-		OtpExpire: time.Now().Add(10*time.Minute).Unix(),
-	}
-
-	if err := s.repo.Create(ctx, user); err != nil {
+    //  User Does Not Exist (Brand New Registration)
+    
+    hashedPass, err := helper.Hash(password)
+    if err != nil {
         return err
     }
-	return s.otp.SendOtp(user.Email,user.Otp)
+
+    otp := helper.GenerateOtp()
+
+    newUser := &domain.User{
+        Name:      name,
+        Email:     email,
+        Password:  hashedPass,
+        IsActive:  false,
+        Otp:       otp,
+        OtpExpire: time.Now().Add(10 * time.Minute).Unix(),
+    }
+
+    // Create the new user in DB
+    if err := s.repo.Create(ctx, newUser); err != nil {
+        return err
+    }
+
+    return s.otp.SendOtp(newUser.Email, newUser.Otp)
 }
 
 func (s *userService) VerifyOtp(ctx context.Context,email,code string)error{

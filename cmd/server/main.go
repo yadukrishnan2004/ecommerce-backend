@@ -32,11 +32,12 @@ func main() {
 	// setting up the handler layer
 
 
-	nofier:=notifications.NewemailNodifier(cfg.SMTP_HOST,
+	nofier:=notifications.NewemailNodifier(
+									cfg.SMTP_HOST,
 									cfg.SMTP_PORT,
 									cfg.SMTP_EMAIL,
 									cfg.SMTP_PASS,
-									cfg.SMTP_FROM)
+								)
 
 	//Reopsiterys
 	userRepo:=repositery.NewUserRepo(DB)
