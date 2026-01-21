@@ -15,6 +15,7 @@ func SetUpRouther(app *fiber.App,userH *handler.UserHandler){
 	UserRouter:=v1.Group("/user")
 	{
 		UserRouter.Post("/signup",userH.Register)
+		UserRouter.Post("/verify",userH.OtpVerify)
 	}
 	
 }

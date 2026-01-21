@@ -7,24 +7,31 @@ import (
 
 type UserHandler struct {
 	svc domain.UserService
-	vrify domain.UserService
+
 }
 
-func NewUserHandler(svc,vrify domain.UserService) *UserHandler{
+func NewUserHandler(svc domain.UserService) *UserHandler{
 	return &UserHandler{
 		svc:svc,
-		vfy:vrify,
 	}
 }
 
 func(h *UserHandler) OtpVerify(c *fiber.Ctx)error{
 	var otp struct{
-		otp string
+		Email string `json:"email"`
+		Otp string	`json:"otp"`
 	}
 
 	if err:=c.BodyParser(&otp);err != nil {
 		return c.Status(401).JSON(fiber.Map{"error":"invalid input"})
 	}
+
+	if err:=h.svc.VerifyOtp(c.Context(),otp.Email,otp.Otp);err != nil {
+		return c.Status(401).JSON(fiber.Map{"error":err.Error()})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Account verified successfully","status":"user created"})
+
 	
 }
 
