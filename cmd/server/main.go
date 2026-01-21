@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	auth "github.com/yadukrishnan2004/ecommerce-backend/internal/Auth"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/notifications"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/repositery"
@@ -49,18 +50,19 @@ func main() {
 	// setting up the handler layer
 
 
-	nofier:=notifications.NewemailNodifier(
-									cfg.SMTP_HOST,
-									cfg.SMTP_PORT,
-									cfg.SMTP_EMAIL,
-									cfg.SMTP_PASS,
-								)
+	nofier:=notifications.NewemailNodifier( cfg.SMTP_HOST,
+											cfg.SMTP_PORT,
+											cfg.SMTP_EMAIL,
+											cfg.SMTP_PASS)
 
 	//Reopsiterys
 	userRepo:=repositery.NewUserRepo(DB)
 
+	//jwt service 
+	jwt:=auth.NewJwtService(cfg.JWT)
+
 	//services
-	userSVC:=service.NewUserService(userRepo,nofier)
+	userSVC:=service.NewUserService(userRepo,nofier,*jwt)
 
 	//handlers
 	UserHandler:=handler.NewUserHandler(userSVC)
@@ -81,7 +83,7 @@ func main() {
 
 	signal.Notify(c,os.Interrupt,syscall.SIGTERM)
 	<-c
-	fmt.Println("The Sever is Starting shutting down....")
+	fmt.Println("The Sever is Starting shutting down in 5 seconds....")
 
 		ctx,cancel:=context.WithTimeout(context.Background(),5*time.Second)
 		defer cancel()

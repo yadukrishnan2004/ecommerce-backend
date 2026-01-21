@@ -6,18 +6,21 @@ import (
 	"time"
 
 	"github.com/yadukrishnan2004/ecommerce-backend/helper"
+	auth "github.com/yadukrishnan2004/ecommerce-backend/internal/Auth"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
 )
 
 type userService struct {
 	repo domain.UserRepositery
 	otp  domain.NotificationClint
+    jwt  auth.JwtService
 }
 
-func NewUserService(repo domain.UserRepositery,otp domain.NotificationClint) domain.UserService{
+func NewUserService(repo domain.UserRepositery,otp domain.NotificationClint,jwt auth.JwtService) domain.UserService{
 	return &userService{
 		repo:repo,
 		otp :otp,
+        jwt: jwt,
 	}
 }
 
@@ -102,4 +105,30 @@ func (s *userService) VerifyOtp(ctx context.Context,email,code string)error{
     user.IsActive = true
     user.Otp = "" // Clear the code
     return s.repo.Update(ctx, user)
+}
+
+func (s *userService) Login(ctx context.Context,email,passwore string)(string,error){
+   user,err:=s.repo.GetByEmail(ctx,email)
+   if err != nil {
+    return "",errors.New("invalid email or password")
+   }
+
+   //check the user is active or not 
+   if !user.IsActive{
+    return "",errors.New("account not verified")
+   }
+
+   // checking the password
+  if err:=helper.VerifyHash(user.Password,passwore); !err {
+    return "", errors.New("invalid email or password")
+  }
+
+  // JWT token generation
+
+  acc,erro:=s.jwt.GenerateToken(user.ID,s.jwt.AccessTTL)
+  if erro != nil {
+    return "",erro
+  }
+  return acc,nil
+
 }

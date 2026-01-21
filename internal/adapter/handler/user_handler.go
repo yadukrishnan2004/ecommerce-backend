@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
 )
@@ -52,4 +54,38 @@ func (h *UserHandler) Register(c *fiber.Ctx) error{
     }
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "An OTP sent to your gmail id"})
+}
+
+func (h *UserHandler) Login(c *fiber.Ctx) error{
+	type LoginRequest struct {
+        Email    string `json:"email"`
+        Password string `json:"password"`
+    }
+
+    req := new(LoginRequest)
+	if err := c.BodyParser(req); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
+    }
+
+	token, err := h.svc.Login(c.Context(), req.Email, req.Password)
+    if err != nil {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
+    }
+	//  Create the Cookie (HTTP Logic)
+    cookie := fiber.Cookie{
+        Name:     "jwt",
+        Value:    token,
+        Expires:  time.Now().Add(15 * time.Minute), // Match your token expiry
+        HTTPOnly: true,                           // XSS Protection: JS cannot read this
+        Secure:   false,                          // Set to TRUE in production (HTTPS)
+        SameSite: "Lax",                          // CSRF Protection
+    }
+
+    //  Attach cookie to response
+    c.Cookie(&cookie)
+
+
+    return c.Status(fiber.StatusOK).JSON(fiber.Map{
+        "message": "Login successful",
+    })
 }
