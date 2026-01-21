@@ -71,14 +71,14 @@ func (h *UserHandler) Login(c *fiber.Ctx) error{
     if err != nil {
         return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
     }
-	//  Create the Cookie (HTTP Logic)
+	//   Cookie (HTTP Logic)
     cookie := fiber.Cookie{
         Name:     "jwt",
         Value:    token,
-        Expires:  time.Now().Add(15 * time.Minute), // Match your token expiry
-        HTTPOnly: true,                           // XSS Protection: JS cannot read this
-        Secure:   false,                          // Set to TRUE in production (HTTPS)
-        SameSite: "Lax",                          // CSRF Protection
+        Expires:  time.Now().Add(15 * time.Minute), 
+        HTTPOnly: true,                           
+        Secure:   false,                          
+        SameSite: "Lax",                          
     }
 
     //  Attach cookie to response
@@ -89,3 +89,19 @@ func (h *UserHandler) Login(c *fiber.Ctx) error{
         "message": "Login successful",
     })
 }
+
+func (h *UserHandler) Logout(c *fiber.Ctx) error {
+    cookie := fiber.Cookie{
+        Name:     "jwt",
+        Value:    "",
+        Expires:  time.Now().Add(-time.Hour), 
+        HTTPOnly: true,
+    }
+
+    c.Cookie(&cookie)
+
+    return c.Status(fiber.StatusOK).JSON(fiber.Map{
+        "message": "Logged out successfully",
+    })
+}
+
