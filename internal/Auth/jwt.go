@@ -30,3 +30,13 @@ func (j *JwtService) GenerateToken(u uint, ttl int32)(string,error){
 	t:=jwt.NewWithClaims(jwt.SigningMethodHS256,claims)
 	return t.SignedString(j.secret)
 }
+
+func (j *JwtService) GenerateAuthToken(u string, ttl int32)(string,error){
+	claims:=jwt.MapClaims{
+		"sub":u,
+		"exp":time.Now().Add(time.Duration(ttl)*time.Second).Unix(),
+		"iat":time.Now().Unix(),
+	}
+	t:=jwt.NewWithClaims(jwt.SigningMethodHS256,claims)
+	return t.SignedString(j.secret)
+}

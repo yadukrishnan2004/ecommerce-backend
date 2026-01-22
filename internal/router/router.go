@@ -18,6 +18,8 @@ func SetUpRouther(app *fiber.App,userH *handler.UserHandler){
 		UserRouter.Post("/verify",userH.OtpVerify)
 		UserRouter.Post("/login",userH.Login)
 		UserRouter.Post("/logout",userH.Logout)
+		UserRouter.Post("/forgotpassword",userH.Forgetpassword)
+		UserRouter.Post("/resetpassword",userH.Resetpassword)
 	}
 	
 }

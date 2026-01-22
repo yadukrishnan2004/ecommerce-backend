@@ -84,7 +84,7 @@ func (s *userService) Register(ctx context.Context, name, email, password string
     return s.otp.SendOtp(newUser.Email, newUser.Otp)
 }
 
-func (s *userService) VerifyOtp(ctx context.Context,email,code string)error{
+func(s *userService) VerifyOtp(ctx context.Context,email,code string)error{
 	user, err := s.repo.GetByEmail(ctx, email)
     if err != nil {
         return errors.New("user not found")
@@ -107,7 +107,7 @@ func (s *userService) VerifyOtp(ctx context.Context,email,code string)error{
     return s.repo.Update(ctx, user)
 }
 
-func (s *userService) Login(ctx context.Context,email,passwore string)(string,error){
+func(s *userService) Login(ctx context.Context,email,passwore string)(string,error){
    user,err:=s.repo.GetByEmail(ctx,email)
    if err != nil {
     return "",errors.New("invalid email or password")
@@ -131,4 +131,48 @@ func (s *userService) Login(ctx context.Context,email,passwore string)(string,er
   }
   return acc,nil
 
+}
+
+func(s *userService) Forgetpassword(ctx context.Context,email string)(string,error){
+       user,err:=s.repo.GetByEmail(ctx,email)
+   if err != nil {
+    return "",errors.New("invalid email or password")
+   }
+
+   otp:=helper.GenerateOtp()
+   user.Otp=otp
+   user.OtpExpire=time.Now().Add(10 * time.Minute).Unix()
+ if  err:= s.repo.Update(ctx,user);err!= nil {
+    return"", errors.New("something went wrong please try again later")
+ }
+    token,erro:=s.jwt.GenerateAuthToken(user.Email,10*60)
+    if erro != nil {
+        return "", errors.New("forgot pass is not generated")
+    }
+    return token,nil
+}
+
+func(s *userService) Resetpassword(ctx context.Context,email,code,newpassword string)error{
+   user,err:=s.repo.GetByEmail(ctx,email)
+   if err != nil {
+    return errors.New("user not found")
+    }   
+    if user.OtpExpire<time.Now().Unix(){
+    return errors.New("time Expired")
+    }
+   if user.Otp==code||code == ""{
+    return errors.New("code not match")
+    }
+    if newpassword==""{
+        return errors.New("please enter an valid password")
+    }
+    hash,hasherr:=helper.Hash(newpassword)
+    if hasherr !=nil{
+        return errors.New("something went wrong")
+    }
+    user.Password=hash
+   if erro:= s.repo.Update(ctx,user);erro != nil {
+    return errors.New("sorry password not updated please try again")
+   }
+   return nil  
 }
