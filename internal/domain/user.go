@@ -29,7 +29,7 @@ type UserRepositery interface {
 }
 
 type UserService interface{
-	Register(ctx context.Context,name,email,password string)error
+	Register(ctx context.Context,name,email,password string)(string,error)
 	VerifyOtp(ctx context.Context,email,code string)error
 	Login(ctx context.Context,email,password string)(string,error)
 	Forgetpassword(ctx context.Context,email string)(string,error)

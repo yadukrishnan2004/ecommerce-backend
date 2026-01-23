@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"fmt"
 	"time"
-    "fmt"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/utile/constants"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/utile/response"
 )
 
 type UserHandler struct {
@@ -19,21 +22,23 @@ func NewUserHandler(svc domain.UserService) *UserHandler{
 }
 
 func(h *UserHandler) OtpVerify(c *fiber.Ctx)error{
+    email, ok := c.Locals("email").(string)
+    if !ok {
+        return c.Status(401).JSON(fiber.Map{"error": "Unauthorized"})
+    }
 	var otp struct{
-		Email string `json:"email"`
 		Otp string	`json:"otp"`
 	}
 
 	if err:=c.BodyParser(&otp);err != nil {
-		return c.Status(401).JSON(fiber.Map{"error":"invalid input"})
+        return response.Error(c,constants.BADREQUEST,"invalid request body",err)
 	}
 
-	if err:=h.svc.VerifyOtp(c.Context(),otp.Email,otp.Otp);err != nil {
-		return c.Status(401).JSON(fiber.Map{"error":err.Error()})
+	if err:=h.svc.VerifyOtp(c.Context(),email,otp.Otp);err != nil {
+        return response.Error(c,constants.BADREQUEST,"invalid code",err)
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Account verified successfully","status":"user created"})
-
+    return response.Success(c,constants.CREATED,"user created","")
 	
 }
 
@@ -45,15 +50,25 @@ func (h *UserHandler) Register(c *fiber.Ctx) error{
 	}
 
 	if err:=c.BodyParser(&User);err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error":"invalid input"})
+        return response.Error(c,constants.BADREQUEST,"invalid input",err)
 	}
 
-	err:=h.svc.Register(c.Context(),User.Name,User.Email,User.Password)
+	token,err:=h.svc.Register(c.Context(),User.Name,User.Email,User.Password)
 	if err != nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+        return response.Error(c,constants.INTERNALSERVERERROR,"please try again later",err)
     }
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "An OTP sent to your gmail id"})
+        cookie := fiber.Cookie{
+        Name:     "jwt",
+        Value:    token,
+        Expires:  time.Now().Add(10 * time.Minute), 
+        HTTPOnly: true,                           
+        Secure:   false,                          
+        SameSite: "Lax",                          
+    }
+    c.Cookie(&cookie)
+
+    return response.Success(c,constants.SUCCESSSUCCESS,fmt.Sprintf("otp is send to your %s",User.Email),"")
 }
 
 func (h *UserHandler) Login(c *fiber.Ctx) error{
@@ -64,14 +79,14 @@ func (h *UserHandler) Login(c *fiber.Ctx) error{
 
     req := new(LoginRequest)
 	if err := c.BodyParser(req); err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
+        return response.Error(c,constants.BADREQUEST,"invalid request",err)
     }
 
 	token, err := h.svc.Login(c.Context(), req.Email, req.Password)
     if err != nil {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
+        return response.Error(c,constants.UNAUTHORIZED,"user not found",err)
     }
-	//   Cookie (HTTP Logic)
+
     cookie := fiber.Cookie{
         Name:     "jwt",
         Value:    token,
@@ -81,13 +96,9 @@ func (h *UserHandler) Login(c *fiber.Ctx) error{
         SameSite: "Lax",                          
     }
 
-    //  Attach cookie to response
     c.Cookie(&cookie)
 
-
-    return c.Status(fiber.StatusOK).JSON(fiber.Map{
-        "message": "Login successful",
-    })
+    return response.Success(c,constants.SUCCESSSUCCESS,"login successful","")
 }
 
 func (h *UserHandler) Logout(c *fiber.Ctx) error {
@@ -100,9 +111,7 @@ func (h *UserHandler) Logout(c *fiber.Ctx) error {
 
     c.Cookie(&cookie)
 
-    return c.Status(fiber.StatusOK).JSON(fiber.Map{
-        "message": "Logged out successfully",
-    })
+    return response.Success(c,constants.SUCCESSSUCCESS,"logged out successfully","")
 }
 
 func (h *UserHandler) Forgetpassword(c *fiber.Ctx) error{
@@ -110,15 +119,12 @@ func (h *UserHandler) Forgetpassword(c *fiber.Ctx) error{
         Email string `json:"email" binding:"required"`
     }
    if err:= c.BodyParser(&getemail);err != nil {
-    return c.Status(400).JSON(fiber.Map{"error":"email is not valid"})
+    return response.Error(c,constants.BADREQUEST,"email is not valid",err)
    }
 
     token,err := h.svc.Forgetpassword(c.Context(), getemail.Email);
      if err != nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "error in forget password",
-            "detail": err.Error(),
-        })
+        return response.Error(c,constants.INTERNALSERVERERROR,"please try again later",err)
     }
 
         cookie := fiber.Cookie{
@@ -130,16 +136,13 @@ func (h *UserHandler) Forgetpassword(c *fiber.Ctx) error{
         SameSite: "Lax",                          
     }
     c.Cookie(&cookie)
-    return c.Status(200).JSON(fiber.Map{
-        "status":fmt.Sprintf("otp is send to your %s",getemail.Email),
-    })
-
+    return response.Success(c,constants.SUCCESSSUCCESS,fmt.Sprintf("otp is send to your %s",getemail.Email),"")
 }
 
 func(h *UserHandler) Resetpassword(c *fiber.Ctx)error{
   email, ok := c.Locals("email").(string)
     if !ok {
-        return c.Status(401).JSON(fiber.Map{"error": "Unauthorized"})
+        return response.Error(c,constants.UNAUTHORIZED,"Unauthorized","")
     }
 
     var Reset struct{
@@ -148,12 +151,12 @@ func(h *UserHandler) Resetpassword(c *fiber.Ctx)error{
     }
 
    if err:=c.BodyParser(&Reset);err !=nil{
-    return c.Status(400).JSON(fiber.Map{"error":"invalid input"})
+    return response.Error(c,constants.BADREQUEST,"invalid input","")
    }
 
   if err:=h.svc.Resetpassword(c.Context(),email,Reset.Code,Reset.Newpassword);err != nil{
-    return  c.Status(400).JSON(fiber.Map{"error":err.Error()})
+    return response.Error(c,constants.BADREQUEST,"something went wrong with reset password",err.Error())
   }
-  return c.Status(201).JSON(fiber.Map{"status":"user updated"})
+    return response.Error(c,constants.SUCCESSSUCCESS,"user updated","")
 }
 

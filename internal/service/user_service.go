@@ -25,7 +25,7 @@ func NewUserService(repo domain.UserRepositery,otp domain.NotificationClint,jwt 
 }
 
 
-func (s *userService) Register(ctx context.Context, name, email, password string) error {
+func (s *userService) Register(ctx context.Context, name, email, password string) (string,error) {
     // Check if user exists
     user, err := s.repo.GetByEmail(ctx, email)
 
@@ -34,11 +34,11 @@ func (s *userService) Register(ctx context.Context, name, email, password string
         
         //  already active, stop here.
         if user.IsActive {
-            return errors.New("user already exists")
+            return"", errors.New("user already exists")
         }
         hashedPass, err := helper.Hash(password)
         if err != nil {
-            return err
+            return "",err
         }
 
         otp := helper.GenerateOtp()
@@ -51,18 +51,24 @@ func (s *userService) Register(ctx context.Context, name, email, password string
 
         // Save the updates to the Database
         if err := s.repo.Update(ctx, user); err != nil {
-            return err
+            return "", err
         }
 
         // Send the OTP
-        return s.otp.SendOtp(user.Email, user.Otp)
+    s.otp.SendOtp(user.Email, user.Otp)
+    token,erro:=s.jwt.GenerateAuthToken(user.Email,10*60)
+    if erro != nil {
+        return "", errors.New("forgot pass is not generated")
+    }
+
+    return token,nil
     }
 
     //  User Does Not Exist (Brand New Registration)
     
     hashedPass, err := helper.Hash(password)
     if err != nil {
-        return err
+        return"", err
     }
 
     otp := helper.GenerateOtp()
@@ -78,10 +84,15 @@ func (s *userService) Register(ctx context.Context, name, email, password string
 
     // Create the new user in DB
     if err := s.repo.Create(ctx, newUser); err != nil {
-        return err
+        return "",err
+    }
+    s.otp.SendOtp(newUser.Email, newUser.Otp)
+    token,erro:=s.jwt.GenerateAuthToken(user.Email,10*60)
+    if erro != nil {
+        return "", errors.New("forgot pass is not generated")
     }
 
-    return s.otp.SendOtp(newUser.Email, newUser.Otp)
+    return token,nil
 }
 
 func(s *userService) VerifyOtp(ctx context.Context,email,code string)error{
