@@ -9,7 +9,7 @@ import (
 )
 
 func ResetMiddleware(c *fiber.Ctx) error{
-	token:=c.Cookies("jwt")
+	token:=c.Cookies("forgetpassword")
 
 	if token == ""{
 		authHead:=c.Get("Authorization")

@@ -35,7 +35,7 @@ func(h *UserHandler) OtpVerify(c *fiber.Ctx)error{
 	}
 
 	if err:=h.svc.VerifyOtp(c.Context(),email,otp.Otp);err != nil {
-        return response.Error(c,constants.BADREQUEST,"invalid code",err)
+        return response.Error(c,constants.BADREQUEST,"invalid code",err.Error())
 	}
 
     return response.Success(c,constants.CREATED,"user created","")
@@ -84,7 +84,7 @@ func (h *UserHandler) Login(c *fiber.Ctx) error{
 
 	token, err := h.svc.Login(c.Context(), req.Email, req.Password)
     if err != nil {
-        return response.Error(c,constants.UNAUTHORIZED,"user not found",err)
+        return response.Error(c,constants.UNAUTHORIZED,"user not found",err.Error())
     }
 
     cookie := fiber.Cookie{
@@ -128,7 +128,7 @@ func (h *UserHandler) Forgetpassword(c *fiber.Ctx) error{
     }
 
         cookie := fiber.Cookie{
-        Name:     "jwt",
+        Name:     "forgetpassword",
         Value:    token,
         Expires:  time.Now().Add(10 * time.Minute), 
         HTTPOnly: true,                           
@@ -151,12 +151,21 @@ func(h *UserHandler) Resetpassword(c *fiber.Ctx)error{
     }
 
    if err:=c.BodyParser(&Reset);err !=nil{
-    return response.Error(c,constants.BADREQUEST,"invalid input","")
+    return response.Error(c,constants.BADREQUEST,"invalid input",err.Error())
    }
 
   if err:=h.svc.Resetpassword(c.Context(),email,Reset.Code,Reset.Newpassword);err != nil{
     return response.Error(c,constants.BADREQUEST,"something went wrong with reset password",err.Error())
   }
+
+    cookie := fiber.Cookie{
+        Name:     "forgetpassword",
+        Value:    "",
+        Expires:  time.Now().Add(-time.Hour), 
+        HTTPOnly: true,
+    }
+
+    c.Cookie(&cookie)
     return response.Error(c,constants.SUCCESSSUCCESS,"user updated","")
 }
 
