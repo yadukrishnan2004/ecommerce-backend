@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/middleware"
 )
 
 func SetUpRouther(app *fiber.App,userH *handler.UserHandler){
@@ -19,7 +20,7 @@ func SetUpRouther(app *fiber.App,userH *handler.UserHandler){
 		UserRouter.Post("/login",userH.Login)
 		UserRouter.Post("/logout",userH.Logout)
 		UserRouter.Post("/forgotpassword",userH.Forgetpassword)
-		UserRouter.Post("/resetpassword",userH.Resetpassword)
+		UserRouter.Post("/resetpassword",middleware.ResetMiddleware,userH.Resetpassword)
 	}
 	
 }

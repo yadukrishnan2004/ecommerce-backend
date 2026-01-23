@@ -140,6 +140,7 @@ func(s *userService) Forgetpassword(ctx context.Context,email string)(string,err
    }
 
    otp:=helper.GenerateOtp()
+   s.otp.SendOtp(user.Email,otp)
    user.Otp=otp
    user.OtpExpire=time.Now().Add(10 * time.Minute).Unix()
  if  err:= s.repo.Update(ctx,user);err!= nil {
@@ -160,7 +161,7 @@ func(s *userService) Resetpassword(ctx context.Context,email,code,newpassword st
     if user.OtpExpire<time.Now().Unix(){
     return errors.New("time Expired")
     }
-   if user.Otp==code||code == ""{
+   if user.Otp!=code||code == ""{
     return errors.New("code not match")
     }
     if newpassword==""{
@@ -171,6 +172,7 @@ func(s *userService) Resetpassword(ctx context.Context,email,code,newpassword st
         return errors.New("something went wrong")
     }
     user.Password=hash
+    user.Otp=""
    if erro:= s.repo.Update(ctx,user);erro != nil {
     return errors.New("sorry password not updated please try again")
    }

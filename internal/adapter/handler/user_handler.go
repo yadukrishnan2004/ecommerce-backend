@@ -107,7 +107,7 @@ func (h *UserHandler) Logout(c *fiber.Ctx) error {
 
 func (h *UserHandler) Forgetpassword(c *fiber.Ctx) error{
     var getemail struct{
-        Email string `json:"email" binding:"required,email"`
+        Email string `json:"email" binding:"required"`
     }
    if err:= c.BodyParser(&getemail);err != nil {
     return c.Status(400).JSON(fiber.Map{"error":"email is not valid"})
@@ -122,7 +122,7 @@ func (h *UserHandler) Forgetpassword(c *fiber.Ctx) error{
     }
 
         cookie := fiber.Cookie{
-        Name:     "forgotpassword",
+        Name:     "jwt",
         Value:    token,
         Expires:  time.Now().Add(10 * time.Minute), 
         HTTPOnly: true,                           
@@ -137,7 +137,10 @@ func (h *UserHandler) Forgetpassword(c *fiber.Ctx) error{
 }
 
 func(h *UserHandler) Resetpassword(c *fiber.Ctx)error{
-   email :=c.Get("email")
+  email, ok := c.Locals("email").(string)
+    if !ok {
+        return c.Status(401).JSON(fiber.Map{"error": "Unauthorized"})
+    }
 
     var Reset struct{
         Code        string `json:"code" binding:"required"`
