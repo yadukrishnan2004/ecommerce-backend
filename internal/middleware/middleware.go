@@ -32,7 +32,7 @@ func ResetMiddleware(c *fiber.Ctx) error{
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 
-	if err != nil || !stoken.Valid {
+	if !stoken.Valid {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized: Invalid token"})
 	}
 	claims, ok := stoken.Claims.(jwt.MapClaims)
