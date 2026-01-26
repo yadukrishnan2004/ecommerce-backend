@@ -28,7 +28,6 @@ func NewUserService(repo domain.UserRepositery,otp domain.NotificationClint,jwt 
 func (s *userService) Register(ctx context.Context, name, email, password string) (string,error) {
     // Check if user exists
     user, err := s.repo.GetByEmail(ctx, email)
-
  
     if err == nil && user.ID != 0 {
         
@@ -48,6 +47,7 @@ func (s *userService) Register(ctx context.Context, name, email, password string
         user.Password = hashedPass
         user.Otp = otp
         user.OtpExpire = time.Now().Add(10 * time.Minute).Unix()
+        user.Role="user"
 
         // Save the updates to the Database
         if err := s.repo.Update(ctx, user); err != nil {
@@ -56,7 +56,7 @@ func (s *userService) Register(ctx context.Context, name, email, password string
 
         // Send the OTP
     s.otp.SendOtp(user.Email, user.Otp)
-    token,erro:=s.jwt.GenerateAuthToken(user.Email,10*60)
+    token,erro:=s.jwt.GenerateToken(user.ID,10*60,user.Role)
     if erro != nil {
         return "", errors.New("forgot pass is not generated")
     }
@@ -68,7 +68,7 @@ func (s *userService) Register(ctx context.Context, name, email, password string
     
     hashedPass, err := helper.Hash(password)
     if err != nil {
-        return"", err
+        return "", err
     }
 
     otp := helper.GenerateOtp()
@@ -87,7 +87,7 @@ func (s *userService) Register(ctx context.Context, name, email, password string
         return "",err
     }
     s.otp.SendOtp(newUser.Email, newUser.Otp)
-    token,erro:=s.jwt.GenerateAuthToken(user.Email,10*60)
+    token,erro:=s.jwt.GenerateToken(user.ID,10*60,user.Role)
     if erro != nil {
         return "", errors.New("forgot pass is not generated")
     }
@@ -136,7 +136,7 @@ func(s *userService) Login(ctx context.Context,email,passwore string)(string,err
 
   // JWT token generation
 
-  acc,erro:=s.jwt.GenerateToken(user.ID,s.jwt.AccessTTL)
+  acc,erro:=s.jwt.GenerateToken(user.ID,s.jwt.AccessTTL,user.Role)
   if erro != nil {
     return "",erro
   }
@@ -149,7 +149,6 @@ func(s *userService) Forgetpassword(ctx context.Context,email string)(string,err
    if err != nil {
     return "",errors.New("invalid email or password")
    }
-
    otp:=helper.GenerateOtp()
    s.otp.SendOtp(user.Email,otp)
    user.Otp=otp
@@ -157,7 +156,7 @@ func(s *userService) Forgetpassword(ctx context.Context,email string)(string,err
  if  err:= s.repo.Update(ctx,user);err!= nil {
     return"", errors.New("something went wrong please try again later")
  }
-    token,erro:=s.jwt.GenerateAuthToken(user.Email,10*60)
+    token,erro:=s.jwt.GenerateAuthToken(user.Role,user.Email,10*60)
     if erro != nil {
         return "", errors.New("forgot pass is not generated")
     }

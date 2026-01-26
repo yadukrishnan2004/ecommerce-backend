@@ -21,9 +21,10 @@ func NewJwtService(s *config.JWTConfig) *JwtService {
 	}
 }
 
-func (j *JwtService) GenerateToken(u uint, ttl int32)(string,error){
+func (j *JwtService) GenerateToken(u uint, ttl int32,role string)(string,error){
 	claims:=jwt.MapClaims{
 		"sub":u,
+		"role":role,
 		"exp":time.Now().Add(time.Duration(ttl)*time.Second).Unix(),
 		"iat":time.Now().Unix(),
 	}
@@ -31,9 +32,10 @@ func (j *JwtService) GenerateToken(u uint, ttl int32)(string,error){
 	return t.SignedString(j.secret)
 }
 
-func (j *JwtService) GenerateAuthToken(u string, ttl int32)(string,error){
+func (j *JwtService) GenerateAuthToken(r,u string, ttl int32)(string,error){
 	claims:=jwt.MapClaims{
 		"sub":u,
+		"role":r,
 		"exp":time.Now().Add(time.Duration(ttl)*time.Second).Unix(),
 		"iat":time.Now().Unix(),
 	}
