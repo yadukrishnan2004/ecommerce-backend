@@ -7,20 +7,34 @@ import (
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/middleware"
 )
 
-func SetUpRouther(app *fiber.App,userH *handler.UserHandler){
+func SetUpRouther(app *fiber.App, userH *handler.UserHandler) {
 	app.Use(logger.New())
 
-	api:=app.Group("/api")
-	v1:=api.Group("/v1")
+	api := app.Group("/api")
+	v1 := api.Group("/v1")
 
-	UserRouter:=v1.Group("/user")
+	userRoutes := v1.Group("/users")
+
+	// PUBLIC ROUTES (No Token Required)
 	{
-		UserRouter.Post("/signup",userH.Register)
-		UserRouter.Post("/verify",middleware.ResetMiddleware,userH.OtpVerify)
-		UserRouter.Post("/login",userH.Login)
-		UserRouter.Post("/logout",userH.Logout)
-		UserRouter.Post("/forgotpassword",userH.Forgetpassword)
-		UserRouter.Post("/resetpassword",middleware.ResetMiddleware,userH.Resetpassword)
+		userRoutes.Post("/signup", userH.Register)
+		userRoutes.Post("/login", userH.Login)
+		userRoutes.Post("/forgot-password", userH.Forgetpassword)
 	}
-	
+
+	// SPECIAL ROUTES
+	{
+		userRoutes.Post("/verify",middleware.ResetMiddleware,userH.OtpVerify)
+		userRoutes.Post("/reset-password", middleware.ResetMiddleware, userH.Resetpassword)
+	}
+
+	user := userRoutes.Group("/")
+	user.Use(middleware.UserMiddleware)
+
+	{
+		user.Post("/logout", userH.Logout)
+		user.Put("/profile", userH.UpdateProfile)
+		user.Get("/profile", userH.GetProfile)
+	}
+
 }

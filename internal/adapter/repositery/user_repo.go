@@ -31,3 +31,9 @@ func (r *userRepo) GetByEmail(ctx context.Context, email string) (*domain.User, 
 func (r *userRepo) Update(ctx context.Context,user *domain.User)error{
 	return r.db.WithContext(ctx).Save(user).Error
 }
+
+func (r *userRepo) GetByID(ctx context.Context,userID uint)(*domain.User,error){
+	var user domain.User
+    err := r.db.WithContext(ctx).Where("id = ?", userID).First(&user).Error
+    return &user, err
+}

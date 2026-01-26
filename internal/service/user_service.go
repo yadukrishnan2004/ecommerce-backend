@@ -56,7 +56,7 @@ func (s *userService) Register(ctx context.Context, name, email, password string
 
         // Send the OTP
     s.otp.SendOtp(user.Email, user.Otp)
-    token,erro:=s.jwt.GenerateToken(user.ID,10*60,user.Role)
+    token,erro:=s.jwt.GenerateAuthToken(user.Role,user.Email,10*60,)
     if erro != nil {
         return "", errors.New("forgot pass is not generated")
     }
@@ -187,4 +187,27 @@ func(s *userService) Resetpassword(ctx context.Context,email,code,newpassword st
     return errors.New("sorry password not updated please try again")
    }
    return nil  
+}
+
+func (s *userService) UpdateProfile(ctx context.Context, userID uint, input domain.UserProfile) error {
+    user,err:= s.repo.GetByID(ctx, userID)
+    if err != nil {
+        return errors.New("user not found")
+    }
+    user.Name=input.Name
+    return s.repo.Update(ctx,user)
+}
+
+func (s *userService) GetProfile(ctx context.Context, userID uint) (*domain.UserProfile, error) {
+    users,err:=s.repo.GetByID(ctx, userID)
+    if err != nil {
+        return nil,err
+    }
+    user:=domain.UserProfile{
+		UserID: userID,
+		Name:	users.Name,
+		Email:  users.Email,
+		Role:   users.Role,
+	}
+    return &user,nil
 }

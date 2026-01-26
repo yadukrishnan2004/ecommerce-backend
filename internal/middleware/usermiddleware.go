@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -37,9 +38,10 @@ func UserMiddleware(c *fiber.Ctx) error {
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized: Invalid claims"})
 	}
-	if claims["role"] != "admin" {
+	if claims["role"] != "user" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized: Invalid claims"})
 	}
-	c.Locals("email", claims["sub"])
+	c.Locals("userid", claims["sub"])
+	fmt.Print(claims["sub"])
 	return c.Next()
 }

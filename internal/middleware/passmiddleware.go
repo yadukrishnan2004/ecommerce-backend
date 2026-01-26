@@ -8,7 +8,7 @@ import (
 )
 
 func ResetMiddleware(c *fiber.Ctx) error {
-	token := c.Cookies("forgetpassword")
+	token := c.Cookies("jwtverify")
 
 	if token == "" {
 		authHead := c.Get("Authorization")
