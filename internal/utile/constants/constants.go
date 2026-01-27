@@ -1,7 +1,7 @@
 package constants
 
 var (
-	SUCCESSSUCCESS = 200
+	SUCCESS = 200
 	CREATED        = 201
 	// ACCEPTED_STATUS      = 202
 	// NOCONTENT            = 204

@@ -2,7 +2,6 @@ package domain
 
 import (
 	"context"
-
 	"gorm.io/gorm"
 )
 
@@ -24,7 +23,6 @@ type UserProfile struct {
 	Email   	string `json:"email"`
 	Role 		string `json:"role"`
 	IsBlocked   bool
-
 }
 
 
@@ -53,5 +51,7 @@ type UserService interface{
 
 
 type AdminService interface{
+	 UpdateUser(ctx context.Context,userId uint,req User)(*User,error)
+	 BlockUser(ctx context.Context,userId uint)error
 	 
 }

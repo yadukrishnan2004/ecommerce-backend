@@ -1,10 +1,13 @@
 package middleware
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
 	"os"
 	"strings"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/utile/constants"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/utile/response"
 )
 
 func ResetMiddleware(c *fiber.Ctx) error {
@@ -16,9 +19,8 @@ func ResetMiddleware(c *fiber.Ctx) error {
 			token = strings.TrimPrefix(authHead, "Bearer ")
 		}
 	}
-
 	if token == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+		return response.Error(c,constants.UNAUTHORIZED,"unauthrized","token is nil")
 	}
 
 	stoken, err := jwt.Parse(token, func(t *jwt.Token) (any, error) {
@@ -28,15 +30,15 @@ func ResetMiddleware(c *fiber.Ctx) error {
 		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
 	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+		return response.Error(c,constants.UNAUTHORIZED,"unauthrized",err.Error())
 	}
 
 	if !stoken.Valid {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized: Invalid token"})
+		return response.Error(c,constants.UNAUTHORIZED,"unauthrized","invalid token")
 	}
 	claims, ok := stoken.Claims.(jwt.MapClaims)
 	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized: Invalid claims"})
+		return response.Error(c,constants.UNAUTHORIZED,"unauthrized","invalid claims")
 	}
 	c.Locals("email", claims["sub"])
 	return c.Next()

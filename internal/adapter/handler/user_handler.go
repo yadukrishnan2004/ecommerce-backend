@@ -3,7 +3,6 @@ package handler
 import (
 	"fmt"
 	"time"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/utile/constants"
@@ -67,7 +66,7 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 	}
 	c.Cookie(&cookie)
 
-	return response.Success(c, constants.SUCCESSSUCCESS, fmt.Sprintf("otp is send to your %s", User.Email), "")
+	return response.Success(c, constants.SUCCESS, fmt.Sprintf("otp is send to your %s", User.Email), "")
 }
 
 func (h *UserHandler) Login(c *fiber.Ctx) error {
@@ -97,7 +96,7 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 
 	c.Cookie(&cookie)
 
-	return response.Success(c, constants.SUCCESSSUCCESS, "login successful", "")
+	return response.Success(c, constants.SUCCESS, "login successful", "")
 }
 
 func (h *UserHandler) Logout(c *fiber.Ctx) error {
@@ -110,7 +109,7 @@ func (h *UserHandler) Logout(c *fiber.Ctx) error {
 
 	c.Cookie(&cookie)
 
-	return response.Success(c, constants.SUCCESSSUCCESS, "logged out successfully", "")
+	return response.Success(c, constants.SUCCESS, "logged out successfully", "")
 }
 
 func (h *UserHandler) Forgetpassword(c *fiber.Ctx) error {
@@ -135,7 +134,7 @@ func (h *UserHandler) Forgetpassword(c *fiber.Ctx) error {
 		SameSite: "Lax",
 	}
 	c.Cookie(&cookie)
-	return response.Success(c, constants.SUCCESSSUCCESS, fmt.Sprintf("otp is send to your %s", getemail.Email), "")
+	return response.Success(c, constants.SUCCESS, fmt.Sprintf("otp is send to your %s", getemail.Email), "")
 }
 
 func (h *UserHandler) Resetpassword(c *fiber.Ctx) error {
@@ -165,7 +164,7 @@ func (h *UserHandler) Resetpassword(c *fiber.Ctx) error {
 	}
 
 	c.Cookie(&cookie)
-	return response.Error(c, constants.SUCCESSSUCCESS, "user updated", "")
+	return response.Error(c, constants.SUCCESS, "user updated", "")
 }
 
 func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
@@ -189,7 +188,7 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 	if err := h.svc.UpdateProfile(c.Context(), userID, input); err != nil {
 		return response.Error(c, constants.INTERNALSERVERERROR, "user not updated", err.Error())
 	}
-	return response.Success(c, constants.SUCCESSSUCCESS, "user updated", "")
+	return response.Success(c, constants.SUCCESS, "user updated", "")
 }
 
 func (h *UserHandler) GetProfile(c *fiber.Ctx) error{
@@ -202,5 +201,7 @@ func (h *UserHandler) GetProfile(c *fiber.Ctx) error{
     if err != nil {
         return response.Error(c,constants.UNAUTHORIZED,"unauthorized",err)
     }
-    return response.Success(c,constants.SUCCESSSUCCESS,user.Role,user)
+    return response.Success(c,constants.SUCCESS,user.Role,user)
 }
+
+

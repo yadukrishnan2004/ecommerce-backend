@@ -7,7 +7,7 @@ import (
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/middleware"
 )
 
-func SetUpRouther(app *fiber.App, userH *handler.UserHandler) {
+func SetUpRouther(app *fiber.App, userH *handler.UserHandler,AdminH *handler.AdminHandler) {
 	app.Use(logger.New())
 
 	api := app.Group("/api")

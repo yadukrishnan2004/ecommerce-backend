@@ -58,18 +58,21 @@ func main() {
 	//Reopsiterys
 	userRepo:=repositery.NewUserRepo(DB)
 
+
 	//jwt service 
 	jwt:=auth.NewJwtService(cfg.JWT)
 
 	//services
 	userSVC:=service.NewUserService(userRepo,nofier,*jwt)
+	AdminSVC:=service.NewAdminService(userRepo)
 
 	//handlers
 	UserHandler:=handler.NewUserHandler(userSVC)
+	AdminHandler:=handler.NewAdminHandler(AdminSVC)
 	
 	//setting up the router 
 
-	router.SetUpRouther(app,UserHandler)
+	router.SetUpRouther(app,UserHandler,AdminHandler)
 
 //runing the server in an separate goroutine
 	go func(){
