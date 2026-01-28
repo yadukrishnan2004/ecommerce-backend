@@ -23,7 +23,6 @@ func (h *AdminHandler) UpdateUser(c *fiber.Ctx)error{
 	Id		  uint	 `json:"id" binding:"required"`
 	Name 	  string `json:"name"`
 	Email     string `json:"email"`
-	Password  string `json:"password"`
 	Role 	  string `json:"role"`
 	Otp		  string `json:"otp"`
 	IsActive  bool   `json:"is_active"`
@@ -43,14 +42,11 @@ func (h *AdminHandler) UpdateUser(c *fiber.Ctx)error{
 	if req.Email == ""{
 		return response.Error(c,constants.BADREQUEST,"invalid input","invalid input at email")
 	}
-	if req.Password == ""{
-		return response.Error(c,constants.BADREQUEST,"invalid input","invalid input at password")
-	}
+
 
 		user:=&domain.User{
 		Name: req.Name,
 		Email: req.Email,
-		Password: req.Password,
 		Role: req.Role,
 		Otp: req.Otp,
 		IsActive: req.IsActive,

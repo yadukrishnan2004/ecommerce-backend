@@ -76,7 +76,7 @@ func main() {
 
 //runing the server in an separate goroutine
 	go func(){
-		fmt.Println("Server is running on :3000")
+		fmt.Printf("Server is running on :%s\n",cfg.App_Port)
 		if err:=app.Listen(":"+cfg.App_Port);err != nil {
 			log.Panic(err)
 		}

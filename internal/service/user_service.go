@@ -47,7 +47,7 @@ func (s *userService) Register(ctx context.Context, name, email, password string
         user.Password = hashedPass
         user.Otp = otp
         user.OtpExpire = time.Now().Add(10 * time.Minute).Unix()
-        user.Role="user"
+        user.Role="admin"
 
         // Save the updates to the Database
         if err := s.repo.Update(ctx, user); err != nil {
