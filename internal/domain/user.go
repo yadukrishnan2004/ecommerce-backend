@@ -17,14 +17,6 @@ type User struct {
 	OtpExpire int64  `json:"otp_expire"` 
 }
 
-type UserProfile struct {
-	UserID  	uint  
-    Name    	string `json:"name"`
-	Email   	string `json:"email"`
-	Role 		string `json:"role"`
-	IsBlocked   bool
-}
-
 
 type NotificationClint interface{
 	SendOtp(toEmail string,code string) error
@@ -39,19 +31,6 @@ type UserRepositery interface {
 }
 
 
-type UserService interface{
-	Register(ctx context.Context,name,email,password string)(string,error)
-	VerifyOtp(ctx context.Context,email,code string)error
-	Login(ctx context.Context,email,password string)(string,error)
-	Forgetpassword(ctx context.Context,email string)(string,error)
-	Resetpassword(ctx context.Context,email,code,newpassword string)error
-	UpdateProfile(ctx context.Context, userID uint, input UserProfile) error
-	GetProfile(ctx context.Context, userID uint) (*UserProfile, error)
-}
 
 
-type AdminService interface{
-	 UpdateUser(ctx context.Context,userId uint,req User)(*User,error)
-	 BlockUser(ctx context.Context,userId uint)error
-	 
-}
+

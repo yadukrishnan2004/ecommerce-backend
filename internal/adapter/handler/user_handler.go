@@ -2,58 +2,42 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 	"github.com/gofiber/fiber/v2"
-	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler/dto"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/pkg"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/service"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/utile/constants"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/utile/response"
 )
 
 type UserHandler struct {
-	svc domain.UserService
+	svc service.UserService
 }
 
-func NewUserHandler(svc domain.UserService) *UserHandler {
+func NewUserHandler(svc service.UserService) *UserHandler {
 	return &UserHandler{
 		svc: svc,
 	}
 }
 
-func (h *UserHandler) OtpVerify(c *fiber.Ctx) error {
-	email, ok := c.Locals("email").(string)
-	if !ok {
-		return c.Status(401).JSON(fiber.Map{"error": "Unauthorized"})
-	}
-	var otp struct {
-		Otp string `json:"otp"`
-	}
 
-	if err := c.BodyParser(&otp); err != nil {
-		return response.Error(c, constants.BADREQUEST, "invalid request body", err)
+
+func (h *UserHandler) SignUp(c *fiber.Ctx) error {
+	var request dto.CreateUserRequest
+
+	if err := c.BodyParser(&request); err != nil {
+		return response.Response(c,http.StatusBadRequest,"invalid input",nil,err.Error())
 	}
 
-	if err := h.svc.VerifyOtp(c.Context(), email, otp.Otp); err != nil {
-		return response.Error(c, constants.BADREQUEST, "invalid code", err.Error())
+	if err:=pkg.Validate.Struct(request);err != nil {
+		return response.Response(c,http.StatusBadRequest, "invalid request",request, err.Error())
 	}
 
-	return response.Success(c, constants.CREATED, "user created", "")
-
-}
-
-func (h *UserHandler) Register(c *fiber.Ctx) error {
-	var User struct {
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
-	if err := c.BodyParser(&User); err != nil {
-		return response.Error(c, constants.BADREQUEST, "invalid input", err)
-	}
-
-	token, err := h.svc.Register(c.Context(), User.Name, User.Email, User.Password)
+	token, err := h.svc.SignUp(c.Context(), request.Name, request.Email, request.Password)
 	if err != nil {
-		return response.Error(c, constants.INTERNALSERVERERROR, "please try again later", err)
+		return response.Response(c, http.StatusInternalServerError, "please try again later",nil, err.Error())
 	}
 
 	cookie := fiber.Cookie{
@@ -66,23 +50,42 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 	}
 	c.Cookie(&cookie)
 
-	return response.Success(c, constants.SUCCESS, fmt.Sprintf("otp is send to your %s", User.Email), "")
+	return response.Response(c, http.StatusOK, fmt.Sprintf("otp is send to your %s", request.Email),request,nil)
 }
 
-func (h *UserHandler) Login(c *fiber.Ctx) error {
-	type LoginRequest struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+func (h *UserHandler) OtpVerify(c *fiber.Ctx) error {
+	email, ok := c.Locals("email").(string)
+	if !ok {
+		return response.Response(c,http.StatusUnauthorized,"unauthorized",email,nil)
+	}
+	var otp dto.Otp
+
+	if err := c.BodyParser(&otp); err != nil {
+		return response.Response(c,http.StatusBadRequest, "invalid request",otp, err.Error())
+	}
+	if err:=pkg.Validate.Struct(otp);err != nil {
+		return response.Response(c,http.StatusBadRequest, "invalid request",otp, err.Error())
 	}
 
-	req := new(LoginRequest)
-	if err := c.BodyParser(req); err != nil {
-		return response.Error(c, constants.BADREQUEST, "invalid request", err)
+	if err := h.svc.VerifyOtp(c.Context(), email, otp.Otp); err != nil {
+		return response.Response(c, http.StatusNotAcceptable, "invalid code",otp,err.Error())
+	}
+	return response.Response(c,http.StatusCreated, "user created",nil,nil)
+}
+
+func (h *UserHandler) SignIn(c *fiber.Ctx) error {
+	var request dto.SignInRequest
+
+	if err := c.BodyParser(&request); err != nil {
+		return response.Response(c,http.StatusBadRequest, "invalid request",request,err.Error())
+	}
+	if err:=pkg.Validate.Struct(request);err != nil {
+		return response.Response(c,http.StatusBadRequest, "invalid request",request, err.Error())
 	}
 
-	token, err := h.svc.Login(c.Context(), req.Email, req.Password)
+	token, err := h.svc.SignIn(c.Context(), request.Email, request.Password)
 	if err != nil {
-		return response.Error(c, constants.UNAUTHORIZED, "user not found", err.Error())
+		return response.Response(c,http.StatusUnauthorized, "user not found",request,err.Error())
 	}
 
 	cookie := fiber.Cookie{
@@ -96,7 +99,7 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 
 	c.Cookie(&cookie)
 
-	return response.Success(c, constants.SUCCESS, "login successful", "")
+	return response.Response(c,http.StatusOK, "login successful",request,nil)
 }
 
 func (h *UserHandler) Logout(c *fiber.Ctx) error {
@@ -109,20 +112,21 @@ func (h *UserHandler) Logout(c *fiber.Ctx) error {
 
 	c.Cookie(&cookie)
 
-	return response.Success(c, constants.SUCCESS, "logged out successfully", "")
+	return response.Response(c,http.StatusOK, "logged out successfully",nil,nil)
 }
 
-func (h *UserHandler) Forgetpassword(c *fiber.Ctx) error {
-	var getemail struct {
-		Email string `json:"email" binding:"required"`
-	}
+func (h *UserHandler) Forgotpassword(c *fiber.Ctx) error {
+	var getemail dto.Getemail
 	if err := c.BodyParser(&getemail); err != nil {
-		return response.Error(c, constants.BADREQUEST, "email is not valid", err)
+		return response.Response(c, constants.BADREQUEST, "email is not valid",nil,err.Error())
+	}
+	if err:=pkg.Validate.Struct(getemail);err != nil {
+		return response.Response(c,http.StatusBadRequest, "invalid request",getemail,err.Error())
 	}
 
 	token, err := h.svc.Forgetpassword(c.Context(), getemail.Email)
 	if err != nil {
-		return response.Error(c, constants.INTERNALSERVERERROR, "please try again later", err)
+		return response.Response(c,http.StatusInternalServerError, "please try again later",getemail,err.Error())
 	}
 
 	cookie := fiber.Cookie{
@@ -134,26 +138,27 @@ func (h *UserHandler) Forgetpassword(c *fiber.Ctx) error {
 		SameSite: "Lax",
 	}
 	c.Cookie(&cookie)
-	return response.Success(c, constants.SUCCESS, fmt.Sprintf("otp is send to your %s", getemail.Email), "")
+	return response.Response(c,http.StatusOK, fmt.Sprintf("otp is send to your %s", getemail.Email),nil,nil)
 }
 
+// =======================================================================================
 func (h *UserHandler) Resetpassword(c *fiber.Ctx) error {
 	email, ok := c.Locals("email").(string)
 	if !ok {
-		return response.Error(c, constants.UNAUTHORIZED, "Unauthorized", "")
+		return response.Response(c,http.StatusUnauthorized, "Unauthorized",nil,nil)
 	}
-
-	var Reset struct {
-		Code        string `json:"code" binding:"required"`
-		Newpassword string `json:"password" binding:"required"`
-	}
-
+	
+	var Reset dto.Reset
 	if err := c.BodyParser(&Reset); err != nil {
-		return response.Error(c, constants.BADREQUEST, "invalid input", err.Error())
+		return response.Response(c,http.StatusBadGateway,"invalid input",Reset,err.Error())
+	}
+
+	if err:=pkg.Validate.Struct(Reset);err != nil {
+		return response.Response(c,http.StatusBadRequest, "invalid request",Reset,err.Error())
 	}
 
 	if err := h.svc.Resetpassword(c.Context(), email, Reset.Code, Reset.Newpassword); err != nil {
-		return response.Error(c, constants.BADREQUEST, "something went wrong with reset password", err.Error())
+		return response.Response(c,http.StatusInternalServerError, "something went wrong with reset password",nil,err.Error())
 	}
 
 	cookie := fiber.Cookie{
@@ -164,44 +169,33 @@ func (h *UserHandler) Resetpassword(c *fiber.Ctx) error {
 	}
 
 	c.Cookie(&cookie)
-	return response.Error(c, constants.SUCCESS, "user updated", "")
+	return response.Response(c,http.StatusOK, "user updated",nil,nil)
 }
 
 func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 	user := c.Locals("userid").(float64)
-	var req struct {
-		Name string `json:"name"`
-	}
+
+	var req dto.UpdateUser
 	if err := c.BodyParser(&req); err != nil {
-		return response.Error(c, constants.BADREQUEST, "invalid input", err)
+		return response.Response(c,http.StatusBadRequest, "invalid input",nil,err.Error())
 	}
 
-	if req.Name == "" {
-		return response.Error(c, constants.BADREQUEST, "invalid input", "")
+	if err := h.svc.UpdateProfile(c.Context(),uint(user), req); err != nil {
+		return response.Response(c,http.StatusInternalServerError,"user not updated",req,err.Error())
 	}
-
-	userID := uint(user)
-	input := domain.UserProfile{
-		Name: req.Name,
-	}
-
-	if err := h.svc.UpdateProfile(c.Context(), userID, input); err != nil {
-		return response.Error(c, constants.INTERNALSERVERERROR, "user not updated", err.Error())
-	}
-	return response.Success(c, constants.SUCCESS, "user updated", "")
+	return response.Response(c,http.StatusOK, "user updated",nil,nil)
 }
 
 func (h *UserHandler) GetProfile(c *fiber.Ctx) error{
     userIDFloat, ok := c.Locals("userid").(float64)
     if !ok {
-        return response.Error(c,constants.UNAUTHORIZED,"unauthorized","")
+        return response.Response(c,http.StatusUnauthorized,"unauthorized",nil,nil)
     }
 
     user, err := h.svc.GetProfile(c.Context(), uint(userIDFloat))
     if err != nil {
-        return response.Error(c,constants.UNAUTHORIZED,"unauthorized",err)
+        return response.Response(c,http.StatusUnauthorized,"unauthorized",nil,err.Error())
     }
-    return response.Success(c,constants.SUCCESS,user.Role,user)
+    return response.Response(c,http.StatusOK,user.Role,user,nil)
 }
-
 

@@ -28,7 +28,7 @@ func main() {
 	cfg:=config.Load()
 	
 	// connecting the data base pass an dsn (data source name in the form of string)
-	DB:=infrastructure.ConnectPostgres(cfg.DSN)
+	DB:=infrastructure.ConnectPostgres(cfg.DSN)//connectdb
 	sqlDb,err:=DB.DB()
 	if err != nil {
 		log.Fatal("fale to underlaying db connection")

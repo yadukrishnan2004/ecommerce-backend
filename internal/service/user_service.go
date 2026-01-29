@@ -7,8 +7,20 @@ import (
 
 	"github.com/yadukrishnan2004/ecommerce-backend/helper"
 	auth "github.com/yadukrishnan2004/ecommerce-backend/internal/Auth"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler/dto"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
 )
+
+
+type UserService interface{
+	SignUp(ctx context.Context, name, email, password string) (string,error)
+	VerifyOtp(ctx context.Context,email,code string)error
+	SignIn(ctx context.Context,email,passwore string)(string,error)
+	Forgetpassword(ctx context.Context,email string)(string,error)
+	Resetpassword(ctx context.Context,email,code,newpassword string)error
+	UpdateProfile(ctx context.Context, userID uint, input dto.UpdateUser) error
+	GetProfile(ctx context.Context, userID uint) (*dto.UserProfile, error)
+}
 
 type userService struct {
 	repo domain.UserRepositery
@@ -16,7 +28,7 @@ type userService struct {
     jwt  auth.JwtService
 }
 
-func NewUserService(repo domain.UserRepositery,otp domain.NotificationClint,jwt auth.JwtService) domain.UserService{
+func NewUserService(repo domain.UserRepositery,otp domain.NotificationClint,jwt auth.JwtService) UserService{
 	return &userService{
 		repo:repo,
 		otp :otp,
@@ -25,7 +37,7 @@ func NewUserService(repo domain.UserRepositery,otp domain.NotificationClint,jwt 
 }
 
 
-func (s *userService) Register(ctx context.Context, name, email, password string) (string,error) {
+func (s *userService) SignUp(ctx context.Context, name, email, password string) (string,error) {
     // Check if user exists
     user, err := s.repo.GetByEmail(ctx, email)
  
@@ -47,20 +59,20 @@ func (s *userService) Register(ctx context.Context, name, email, password string
         user.Password = hashedPass
         user.Otp = otp
         user.OtpExpire = time.Now().Add(10 * time.Minute).Unix()
-        user.Role="admin"
+        user.Role="user"
 
         // Save the updates to the Database
         if err := s.repo.Update(ctx, user); err != nil {
             return "", err
         }
-
+        //token generation using email
+        token,erro:=s.jwt.GenerateAuthToken(user.Role,user.Email,10*60,)
+        if erro != nil {
+            return "", errors.New("forgot pass is not generated")
+        }
         // Send the OTP
-    s.otp.SendOtp(user.Email, user.Otp)
-    token,erro:=s.jwt.GenerateAuthToken(user.Role,user.Email,10*60,)
-    if erro != nil {
-        return "", errors.New("forgot pass is not generated")
-    }
-
+        s.otp.SendOtp(user.Email, user.Otp)
+        
     return token,nil
     }
 
@@ -86,12 +98,13 @@ func (s *userService) Register(ctx context.Context, name, email, password string
     if err := s.repo.Create(ctx, newUser); err != nil {
         return "",err
     }
-    s.otp.SendOtp(newUser.Email, newUser.Otp)
-    token,erro:=s.jwt.GenerateToken(user.ID,10*60,user.Role)
+
+    token,erro:=s.jwt.GenerateToken(newUser.ID,10*60,user.Role)
     if erro != nil {
         return "", errors.New("forgot pass is not generated")
     }
-
+    s.otp.SendOtp(newUser.Email, newUser.Otp)
+    
     return token,nil
 }
 
@@ -118,7 +131,7 @@ func(s *userService) VerifyOtp(ctx context.Context,email,code string)error{
     return s.repo.Update(ctx, user)
 }
 
-func(s *userService) Login(ctx context.Context,email,passwore string)(string,error){
+func(s *userService) SignIn(ctx context.Context,email,passwore string)(string,error){
    user,err:=s.repo.GetByEmail(ctx,email)
    if err != nil {
     return "",errors.New("invalid email or password")
@@ -165,13 +178,13 @@ func(s *userService) Forgetpassword(ctx context.Context,email string)(string,err
 
 func(s *userService) Resetpassword(ctx context.Context,email,code,newpassword string)error{
    user,err:=s.repo.GetByEmail(ctx,email)
-   if err != nil {
+    if err != nil {
     return errors.New("user not found")
     }   
     if user.OtpExpire<time.Now().Unix(){
     return errors.New("time Expired")
     }
-   if user.Otp!=code||code == ""{
+    if user.Otp!=code||code == ""{
     return errors.New("code not match")
     }
     if newpassword==""{
@@ -189,22 +202,21 @@ func(s *userService) Resetpassword(ctx context.Context,email,code,newpassword st
    return nil  
 }
 
-func (s *userService) UpdateProfile(ctx context.Context, userID uint, input domain.UserProfile) error {
+func (s *userService) UpdateProfile(ctx context.Context, userID uint, input dto.UpdateUser) error {
     user,err:= s.repo.GetByID(ctx, userID)
     if err != nil {
         return errors.New("user not found")
     }
-    user.Name=input.Name
+    user.Name=*input.Name
     return s.repo.Update(ctx,user)
 }
 
-func (s *userService) GetProfile(ctx context.Context, userID uint) (*domain.UserProfile, error) {
+func (s *userService) GetProfile(ctx context.Context, userID uint) (*dto.UserProfile, error) {
     users,err:=s.repo.GetByID(ctx, userID)
     if err != nil {
         return nil,err
     }
-    user:=domain.UserProfile{
-		UserID: userID,
+    user:=dto.UserProfile{
 		Name:	users.Name,
 		Email:  users.Email,
 		Role:   users.Role,

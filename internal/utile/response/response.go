@@ -1,26 +1,32 @@
 package response
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"github.com/gofiber/fiber/v2"
+)
 
-func Success(ctx *fiber.Ctx,status int,message string,data interface{})error{
-	resp:=ApiResponse{
-		StatusCode: status,
-		Message: message,
-	}
-	if data != nil{
-		resp.Data=data
-	}
-	return ctx.Status(status).JSON(resp)
+
+
+type ApiResponse struct {
+	StatusCode int         `json:"status"`
+	Message    string      `json:"message"`
+	Data       interface{} `json:"data,omitempty"`
+	Error      interface{} `json:"error,omitempty"`
 }
 
-func Error(ctx *fiber.Ctx,status int,message string,err interface{})error{
-	resp:=ApiResponse{
+func Response(
+	c *fiber.Ctx,
+	status int,
+	message string,
+	data interface{},
+	err interface{},
+) error {
+
+	apiResponse := ApiResponse{
 		StatusCode: status,
-		Message: message,
+		Message:    message,
+		Data:       data,
+		Error:      err,
 	}
 
-	if err != nil{
-		resp.Error=err
-	}
-	return ctx.Status(status).JSON(resp)
+	return c.Status(status).JSON(apiResponse)
 }
