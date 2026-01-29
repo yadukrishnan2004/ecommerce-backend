@@ -10,95 +10,104 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
+
 	auth "github.com/yadukrishnan2004/ecommerce-backend/internal/Auth"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/notifications"
-	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/repositery"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/repository"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/config"
-	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/infrastructure"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/router"
-	"github.com/yadukrishnan2004/ecommerce-backend/internal/service"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/usecase"
 )
 
 func main() {
+	// 1. Load Configuration
+	cfg := config.Load()
 
-	
-	//loading the env , setting the Port for runnint the server, setting the DSN 
-	cfg:=config.Load()
-	
-	// connecting the data base pass an dsn (data source name in the form of string)
-	DB:=infrastructure.ConnectPostgres(cfg.DSN)//connectdb
-	sqlDb,err:=DB.DB()
+	// 2. Database Connection
+	db := connectDB(cfg)
+
+	// 3. Initialize Fiber App
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	// 4. Initialize Dependencies & Routes
+	initializeDependencies(app, db, cfg)
+
+	// 5. Start Server with Graceful Shutdown
+	startServer(app, cfg)
+}
+
+func connectDB(cfg *config.Config) *gorm.DB {
+	db := infrastructure.ConnectPostgres(cfg.DSN)
+	sqlDb, err := db.DB()
 	if err != nil {
-		log.Fatal("fale to underlaying db connection")
+		log.Fatalf("Failed to get underlying DB connection: %v", err)
 	}
-	
-	//initilizing the fiber router
-	app:=fiber.New(fiber.Config{
-			DisableStartupMessage: true, 
-		})
-		
-		
-		//Auto migrate repositery tables 
-		
-		DB.AutoMigrate(
-			&domain.User{},   //user table
-		)
-	
-	
-	// setting up the handler layer
 
+	// Verify connection
+	if err := sqlDb.Ping(); err != nil {
+		log.Fatalf("Failed to ping DB: %v", err)
+	}
 
-	nofier:=notifications.NewemailNodifier( cfg.SMTP_HOST,
-											cfg.SMTP_PORT,
-											cfg.SMTP_EMAIL,
-											cfg.SMTP_PASS)
+	// Auto-migrate
+	if err := db.AutoMigrate(&repository.User{}); err != nil {
+		log.Fatalf("Failed to auto migrate: %v", err)
+	}
 
-	//Reopsiterys
-	userRepo:=repositery.NewUserRepo(DB)
+	return db
+}
 
+func initializeDependencies(app *fiber.App, db *gorm.DB, cfg *config.Config) {
+	// Services & Adapters
+	notifier := notifications.NewEmailNotifier(
+		cfg.SMTP_HOST,
+		cfg.SMTP_PORT,
+		cfg.SMTP_EMAIL,
+		cfg.SMTP_PASS,
+	)
 
-	//jwt service 
-	jwt:=auth.NewJwtService(cfg.JWT)
+	userRepo := repository.NewUserRepo(db)
+	jwtService := auth.NewJwtService(cfg.JWT)
 
-	//services
-	userSVC:=service.NewUserService(userRepo,nofier,*jwt)
-	AdminSVC:=service.NewAdminService(userRepo)
+	// Use Cases
+	userUseCase := usecase.NewUserUseCase(userRepo, notifier, *jwtService)
+	adminUseCase := usecase.NewAdminUseCase(userRepo)
 
-	//handlers
-	UserHandler:=handler.NewUserHandler(userSVC)
-	AdminHandler:=handler.NewAdminHandler(AdminSVC)
-	
-	//setting up the router 
+	// Handlers
+	userHandler := handler.NewUserHandler(userUseCase)
+	adminHandler := handler.NewAdminHandler(adminUseCase)
 
-	router.SetUpRouther(app,UserHandler,AdminHandler)
+	// Routes
+	router.SetUpRouter(app, userHandler, adminHandler)
+}
 
-//runing the server in an separate goroutine
-	go func(){
-		fmt.Printf("Server is running on :%s\n",cfg.App_Port)
-		if err:=app.Listen(":"+cfg.App_Port);err != nil {
-			log.Panic(err)
+func startServer(app *fiber.App, cfg *config.Config) {
+	// Run server in a goroutine
+	go func() {
+		addr := fmt.Sprintf(":%s", cfg.App_Port)
+		fmt.Printf("Server is running on %s\n", addr)
+		if err := app.Listen(addr); err != nil {
+			log.Panicf("Server error: %v", err)
 		}
 	}()
 
-	c:=make(chan os.Signal,1)
+	// Graceful Shutdown
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	signal.Notify(c,os.Interrupt,syscall.SIGTERM)
-	<-c
-	fmt.Println("The Sever is Starting shutting down in 5 seconds....")
+	<-c // Block until signal received
 
-		ctx,cancel:=context.WithTimeout(context.Background(),5*time.Second)
-		defer cancel()
-		
-		if err:=app.ShutdownWithContext(ctx);err !=nil{
-			fmt.Printf("Server force to Shutdown:%v\n",err)
-		}
+	fmt.Println("\nGracefully shutting down...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-		fmt.Println("Closing data base connection...")
-		if err:=sqlDb.Close();err != nil {
-			fmt.Printf("Faile to Close the db:%v\n",err)
+	if err := app.ShutdownWithContext(ctx); err != nil {
+		fmt.Printf("Server forced to shutdown: %v\n", err)
+	}
 
-		}
-		fmt.Println("Sever shutdown successfully")
+	fmt.Println("Server shutdown successfully")
 }
