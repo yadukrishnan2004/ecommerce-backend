@@ -11,6 +11,8 @@ type CartService interface {
 	AddToCart(ctx context.Context, userID, productID uint, quantity uint) error
 	ClearCart(ctx context.Context, userID uint) error
 	RemoveItem(ctx context.Context, userID, productID uint) error
+	GetCart(ctx context.Context, userID uint) ([]domain.CartItem, error)
+	UpdateQuantity(ctx context.Context, userID, productID uint, quantity int) error
 }
 
 type cartService struct {
@@ -51,4 +53,26 @@ func (s *cartService) ClearCart(ctx context.Context, userID uint) error {
 
 func (s *cartService) RemoveItem(ctx context.Context, userID, productID uint) error {
     return s.cartRepo.RemoveItem(ctx, userID, productID)
+}
+
+func (s *cartService) GetCart(ctx context.Context, userID uint) ([]domain.CartItem, error) {
+    return s.cartRepo.GetCart(ctx, userID)
+}
+
+func (s *cartService) UpdateQuantity(ctx context.Context, userID, productID uint, quantity int) error {
+
+    if quantity <= 0 {
+        return errors.New("quantity must be greater than 0")
+    }
+
+    product, err := s.productRepo.GetByID(ctx, productID)
+    if err != nil {
+        return errors.New("product not found")
+    }
+    
+    if product.Stock < uint(quantity){
+        return errors.New("insufficient stock available")
+    }
+
+    return s.cartRepo.UpdateQuantity(ctx, userID, productID, quantity)
 }

@@ -67,3 +67,32 @@ func (r *cartRepo) RemoveItem(ctx context.Context, userID, productID uint) error
     }
     return nil
 }
+
+func (r *cartRepo) GetCart(ctx context.Context, userID uint) ([]domain.CartItem, error) {
+    var items []domain.CartItem
+    
+    err := r.db.WithContext(ctx).
+        Preload("Product").
+        Where("user_id = ?", userID).
+        Find(&items).Error
+        
+    return items, err
+}
+
+func (r *cartRepo) UpdateQuantity(ctx context.Context, userID, productID uint, quantity int) error {
+
+    result := r.db.WithContext(ctx).
+        Model(&domain.CartItem{}).
+        Where("user_id = ? AND product_id = ?", userID, productID).
+        Update("quantity", quantity)
+
+    if result.Error != nil {
+        return result.Error
+    }
+    
+    if result.RowsAffected == 0 {
+        return errors.New("item not found in cart")
+    }
+
+    return nil
+}

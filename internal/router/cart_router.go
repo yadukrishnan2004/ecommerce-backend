@@ -13,7 +13,9 @@ func SetUpCartRouter(api fiber.Router,cartH *handler.CartHandler){
 	{
 		routes.Post("/add",cartH.AddToCart)
 		routes.Delete("/clear", cartH.ClearCart)
-		cart.Delete("/:id", cartH.RemoveItem)
+		routes.Delete("/:id", cartH.RemoveItem)
+		routes.Get("/",cartH.GetCart)
+		routes.Put("/:id", cartH.UpdateQuantity)
 	}
 
 }

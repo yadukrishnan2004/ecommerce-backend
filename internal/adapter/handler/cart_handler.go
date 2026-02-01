@@ -72,3 +72,71 @@ func (h *CartHandler) RemoveItem(c *fiber.Ctx) error {
 
     return response.Response(c,http.StatusOK,"item remover successfully",nil,nil,)
 }
+
+func (h *CartHandler) GetCart(c *fiber.Ctx) error {
+
+    userIDFloat, ok := c.Locals("userid").(float64)
+    if !ok {
+        return response.Response(c,http.StatusUnauthorized,"no user found",nil,nil)
+    }
+
+    items, err := h.svc.GetCart(c.Context(), uint(userIDFloat))
+    if err != nil {
+        return response.Response(c,http.StatusInternalServerError,"not get any cart item",nil,err.Error())
+    }
+
+
+    var grandTotal float64
+
+
+
+    var responseItems [] dto.CartItemResponse
+
+    for _, item := range items {
+        subTotal := float64(item.Product.Price) * float64(item.Quantity)
+        grandTotal += subTotal
+
+        responseItems = append(responseItems, dto.CartItemResponse{
+            ProductID:   item.ProductID,
+            ProductName: item.Product.Name,
+            Price:       float64(item.Product.Price),
+            Quantity:    int(item.Quantity),
+            SubTotal:    subTotal,
+        })
+    }
+
+    cart:=dto.Cart{
+        Items: responseItems,
+        GrandTotal: float32(grandTotal),
+        Count: uint(len(items)),
+    }
+
+    return response.Response(c,http.StatusOK,"get cart successfully",cart,nil,)
+
+}
+
+func (h *CartHandler) UpdateQuantity(c *fiber.Ctx) error {
+
+    userIDFloat, ok := c.Locals("userid").(float64)
+    if !ok {
+        return response.Response(c,http.StatusUnauthorized,"no user found",nil,nil)
+    }
+
+    
+    productID, err := c.ParamsInt("id")
+    if err != nil {
+        return response.Response(c,http.StatusBadRequest,"invalid product id",nil,err.Error())
+    }
+
+    var req dto.UpdateReq
+    if err := c.BodyParser(req); err != nil {
+        return response.Response(c,http.StatusBadRequest,"invalid input data",req,err.Error())
+    }
+
+    err = h.svc.UpdateQuantity(c.Context(), uint(userIDFloat), uint(productID), req.Quantity)
+    if err != nil {
+        return response.Response(c,http.StatusInternalServerError,"item not updated",nil,err.Error())
+    }
+
+    return response.Response(c,http.StatusOK,"quantity updated",nil,nil,)    
+}
