@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"time"
-
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
 	"gorm.io/gorm"
 )
@@ -24,6 +23,8 @@ type User struct {
 	IsBlocked bool
 	OtpExpire int64
 }
+
+
 
 // ToDomain converts database model to domain entity
 func (u *User) ToDomain() *domain.User {
@@ -111,3 +112,9 @@ func (r *userRepo) GetByID(ctx context.Context, userID uint) (*domain.User, erro
 	}
 	return user.ToDomain(), nil
 }
+
+func (r *userRepo) Delete(ctx context.Context, userID uint) (error) {
+	return r.db.WithContext(ctx).Delete(&domain.User{}, userID).Error
+}
+
+

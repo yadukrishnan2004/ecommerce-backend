@@ -12,7 +12,14 @@ func SetUpAdminRouter(api fiber.Router,adminH *handler.AdminHandler){
 	routes.Use(middleware.Adminmiddleware)
 	{
 		routes.Patch("/update",adminH.UpdateUser)
-		routes.Post("/block",adminH.BlockUser)
+		routes.Patch("/production/:id",adminH.UpdateStatus)
+		routes.Post("/block/:id",adminH.BlockUser)
+		routes.Post("/product",adminH.AddNewProduct)
+		routes.Get("/allproducts",adminH.GetAll)
+		routes.Get("/Product/:id",adminH.GetProduct)
+		routes.Get("/production/:status",adminH.Production)
+		routes.Delete("/Product/:id",adminH.DeleteProduct)
+		routes.Delete("/user",adminH.DeleteUser)
 	}
 	
 }

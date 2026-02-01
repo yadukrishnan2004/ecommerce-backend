@@ -35,3 +35,7 @@ type UpdateUser struct {
     Email     *string `json:"email,omitempty"`
 }
 
+type UpdateStatus struct{
+	Status  string `json:"status" validate:"required"`
+}
+

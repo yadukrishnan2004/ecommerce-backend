@@ -54,14 +54,23 @@ func connectDB(cfg *config.Config) *gorm.DB {
 	}
 
 	// Auto-migrate
-	if err := db.AutoMigrate(&repository.User{}); err != nil {
+	if err := db.AutoMigrate(
+		&repository.User{},
+		&repository.Product{},
+		&repository.CartItem{},
+		&repository.Wishlist{},
+		); err != nil {
 		log.Fatalf("Failed to auto migrate: %v", err)
 	}
 
 	return db
 }
 
-func initializeDependencies(app *fiber.App, db *gorm.DB, cfg *config.Config) {
+func initializeDependencies(
+	app *fiber.App, 
+	db *gorm.DB,
+	cfg *config.Config,
+	) {
 	// Services & Adapters
 	notifier := notifications.NewEmailNotifier(
 		cfg.SMTP_HOST,
@@ -71,18 +80,25 @@ func initializeDependencies(app *fiber.App, db *gorm.DB, cfg *config.Config) {
 	)
 
 	userRepo := repository.NewUserRepo(db)
+	productRepo := repository.NewProductRepo(db)
+	cartRepo := repository.NewCartRepo(db)
+	wishRepo := repository.NewWishlistRepo(db)
 	jwtService := auth.NewJwtService(cfg.JWT)
 
 	// Use Cases
 	userUseCase := usecase.NewUserUseCase(userRepo, notifier, *jwtService)
-	adminUseCase := usecase.NewAdminUseCase(userRepo)
+	adminUseCase := usecase.NewAdminUseCase(userRepo,productRepo)
+	cartService := usecase.NewCartService(cartRepo, productRepo)
+	wishService := usecase.NewWishlistService(wishRepo, productRepo)
 
 	// Handlers
 	userHandler := handler.NewUserHandler(userUseCase)
 	adminHandler := handler.NewAdminHandler(adminUseCase)
+	cartHandler := handler.NewCartHandler(cartService)
+	wishHandler := handler.NewWishlistHandler(wishService)
 
 	// Routes
-	router.SetUpRouter(app, userHandler, adminHandler)
+	router.SetUpRouter(app, userHandler, adminHandler,cartHandler,wishHandler)
 }
 
 func startServer(app *fiber.App, cfg *config.Config) {

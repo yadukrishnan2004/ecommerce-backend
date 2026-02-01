@@ -231,3 +231,6 @@ func (s *userUseCase) GetProfile(ctx context.Context, userID uint) (*UserProfile
 	}
 	return &user, nil
 }
+
+
+

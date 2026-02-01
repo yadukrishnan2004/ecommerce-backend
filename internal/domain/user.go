@@ -29,7 +29,10 @@ type UserRepository interface {
 	GetByEmail(ctx context.Context, email string) (*User, error)
 	GetByID(ctx context.Context, userID uint) (*User, error)
 	Update(ctx context.Context, user *User) error
+	Delete(ctx context.Context,userId uint) error
 }
+
+
 
 
 

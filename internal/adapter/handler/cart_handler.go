@@ -1,0 +1,74 @@
+package handler
+
+import (
+	"net/http"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler/dto"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/usecase"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/utils/response"
+)
+
+type CartHandler struct {
+    svc usecase.CartService
+}
+
+func NewCartHandler(svc usecase.CartService) *CartHandler {
+    return &CartHandler{svc: svc}
+}
+
+func (h *CartHandler) AddToCart(c *fiber.Ctx) error {
+
+    var req dto.CartRequest
+
+    if err := c.BodyParser(req); err != nil {
+        return response.Response(c,http.StatusBadRequest,"invalid input data",req,err.Error())
+    }
+    if req.Quantity <= 0 {
+        return response.Response(c,http.StatusBadRequest,"invalid input",req,"Quantity must be greater than 0")
+    }
+    userIDFloat, ok := c.Locals("userid").(float64)
+    if !ok { 
+        return response.Response(c,http.StatusUnauthorized,"no user found",nil,nil)
+    }
+    userID := uint(userIDFloat)
+    err := h.svc.AddToCart(c.Context(), userID, req.ProductID, uint(req.Quantity))
+    if err != nil {
+       return response.Response(c,http.StatusInternalServerError,"cart service not working",req,err.Error())
+    }
+
+    return response.Response(c,http.StatusOK,"item added to cart",req,nil,)
+}
+
+func (h *CartHandler) ClearCart(c *fiber.Ctx) error {
+
+    userIDFloat, ok := c.Locals("userid").(float64)
+    if !ok {
+        return response.Response(c,http.StatusUnauthorized,"no user found",nil,nil)
+    }
+    err := h.svc.ClearCart(c.Context(), uint(userIDFloat))
+    if err != nil {
+        return response.Response(c,http.StatusInternalServerError,"faile to clear the cart",nil,err.Error())
+    }
+
+    return response.Response(c,http.StatusOK,"Cart cleared successfully",nil,nil,)
+}
+
+func (h *CartHandler) RemoveItem(c *fiber.Ctx) error {
+    userIDFloat, ok := c.Locals("user_id").(float64)
+    if !ok {
+        return response.Response(c,http.StatusUnauthorized,"no user found",nil,nil)
+    }
+
+    productID, err := c.ParamsInt("id")
+    if err != nil {
+       return response.Response(c,http.StatusBadRequest,"invalid product id",nil,err.Error())
+    }
+
+    err = h.svc.RemoveItem(c.Context(), uint(userIDFloat), uint(productID))
+    if err != nil {
+       return response.Response(c,http.StatusInternalServerError,"item not removed from cart",nil,err.Error())
+    }
+
+    return response.Response(c,http.StatusOK,"item remover successfully",nil,nil,)
+}

@@ -6,6 +6,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler/dto"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/pkg"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/usecase"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/utils/response"
 )
@@ -62,3 +64,109 @@ func (h *AdminHandler) BlockUser(c *fiber.Ctx) error {
 	}
 	return response.Response(c, http.StatusOK, msg, nil, nil)
 }
+
+func (h *AdminHandler) AddNewProduct(c *fiber.Ctx) error {
+
+	var newProduct dto.AddNewProduct
+
+	if err := c.BodyParser(&newProduct); err != nil {
+		return response.Response(c, http.StatusBadRequest, "invalid input", newProduct, err.Error())
+	}
+
+	if err := pkg.Validate.Struct(newProduct); err != nil {
+		return response.Response(c, http.StatusBadRequest, "invalid input", newProduct, err.Error())
+	}
+	product:=domain.Product{
+		Name: newProduct.Name,
+		Price: newProduct.Price,
+		Description: newProduct.Description,
+		Catogery: newProduct.Catogery,
+		Offer: newProduct.Offer,
+		OfferPrice: newProduct.OfferPrice,
+		Production: newProduct.Production,
+	}
+	if err :=h.svc.AddNewProduct(c.Context(),&product); err != nil {
+		return response.Response(c, http.StatusInternalServerError, "failed add new product", nil, err.Error())
+	}
+
+	return response.Response(c, http.StatusOK, "product created", nil, nil)
+}
+
+func (h *AdminHandler) GetAll(c *fiber.Ctx) error {
+	product, err:= h.svc.GetAllProducts(c.Context())
+	if err != nil {
+		return response.Response(c,http.StatusInternalServerError,"faile to fetch the products",nil,err.Error())
+	}
+	return response.Response(c,http.StatusOK,"all users list",product,nil)
+}
+
+func (h *AdminHandler) GetProduct(c *fiber.Ctx) error{
+	id, err := strconv.Atoi(c.Params("id"))
+	if err !=  nil {
+		return response.Response(c, http.StatusBadRequest, "no requst found", nil, err.Error())
+	}
+	product, err := h.svc.GetProduct(c.Context(),uint(id))
+	if err != nil {
+		return response.Response(c, http.StatusBadRequest, "Product not found", nil, err.Error())
+	}
+	return response.Response(c,http.StatusOK,"product found",product,nil)
+}
+
+func (h *AdminHandler) DeleteProduct(c *fiber.Ctx) error{
+	id, err := strconv.Atoi(c.Params("id"))
+	if err !=  nil {
+		return response.Response(c, http.StatusBadRequest, "no requst found", nil, err.Error())
+	}
+	
+	if err := h.svc.DeleteProduct(c.Context(),uint(id)); err != nil {
+		return response.Response(c, http.StatusBadRequest, "Product not found", nil, err.Error())
+	}
+	return response.Response(c,http.StatusOK,"product deleted Successfully",nil,nil)
+}
+
+func (h *AdminHandler) DeleteUser(c *fiber.Ctx) error{
+	id, err := strconv.Atoi(c.Params("id"))
+	if err !=  nil {
+		return response.Response(c, http.StatusBadRequest, "no requst found", nil, err.Error())
+	}
+	
+	if err := h.svc.DeleteProduct(c.Context(),uint(id)); err != nil {
+		return response.Response(c, http.StatusBadRequest, "user not found", nil, err.Error())
+	}
+
+	return response.Response(c, http.StatusOK, "user Deleted Successfully", nil,nil)
+}
+
+func (h *AdminHandler) Production(c *fiber.Ctx) error {
+	status:=c.Params("status")
+	 if status=="" {
+		return response.Response(c,http.StatusBadRequest, "bad request", nil, "no status found")
+	}
+
+	 products,err := h.svc.Production(c.Context(),status)
+	if err != nil {
+		return response.Response(c,http.StatusBadRequest,"not found",nil,err.Error())
+	}
+
+	return response.Response(c,http.StatusOK,"product get successfully",products,nil)
+}
+
+func (h *AdminHandler) UpdateStatus(c *fiber.Ctx) error {
+	id,err:=strconv.Atoi(c.Params("id"))
+	 if err != nil {
+		return response.Response(c,http.StatusBadRequest, "bad request", nil, "no status found")
+	}
+	var status dto.UpdateStatus
+	if err := c.BodyParser(&status); err != nil {
+		return response.Response(c,http.StatusBadRequest, "invalid input", nil, err.Error())
+	}
+	if err := pkg.Validate.Struct(status); err != nil {
+		return response.Response(c, http.StatusBadRequest, "invalid input", nil, err.Error())
+	}	
+	if err:=h.svc.UpdateStatus(c.Context(),uint(id),status.Status); err != nil {
+		return response.Response(c, http.StatusInternalServerError, "try again later", nil, err.Error())
+	}
+	return response.Response(c,http.StatusOK,"status updated",nil,nil)
+}
+
+
