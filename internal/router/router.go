@@ -12,6 +12,7 @@ func SetUpRouter(
 	  AdminH *handler.AdminHandler,
 	  cartH *handler.CartHandler,
 	  wishH *handler.WishlistHandler,
+	  orderH *handler.OrderHandler,
 	  ) {
 	app.Use(logger.New())	
 
@@ -21,4 +22,5 @@ func SetUpRouter(
 	SetUpAdminRouter(v1, AdminH)
 	SetUpCartRouter(v1,cartH)
 	SetupWishlistRoutes(v1,wishH)
+	SetupOrderRoutes(v1,orderH)
 }

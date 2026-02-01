@@ -59,6 +59,8 @@ func connectDB(cfg *config.Config) *gorm.DB {
 		&repository.Product{},
 		&repository.CartItem{},
 		&repository.Wishlist{},
+		&repository.Order{},
+		&repository.OrderItem{},
 		); err != nil {
 		log.Fatalf("Failed to auto migrate: %v", err)
 	}
@@ -83,6 +85,7 @@ func initializeDependencies(
 	productRepo := repository.NewProductRepo(db)
 	cartRepo := repository.NewCartRepo(db)
 	wishRepo := repository.NewWishlistRepo(db)
+	orderRepo := repository.NewOrderRepo(db)
 	jwtService := auth.NewJwtService(cfg.JWT)
 
 	// Use Cases
@@ -90,15 +93,17 @@ func initializeDependencies(
 	adminUseCase := usecase.NewAdminUseCase(userRepo,productRepo)
 	cartService := usecase.NewCartService(cartRepo, productRepo)
 	wishService := usecase.NewWishlistService(wishRepo, productRepo)
+	orderService := usecase.NewOrderService(orderRepo, cartRepo)
 
 	// Handlers
 	userHandler := handler.NewUserHandler(userUseCase)
 	adminHandler := handler.NewAdminHandler(adminUseCase)
 	cartHandler := handler.NewCartHandler(cartService)
 	wishHandler := handler.NewWishlistHandler(wishService)
+	orderHandler := handler.NewOrderHandler(orderService)
 
 	// Routes
-	router.SetUpRouter(app, userHandler, adminHandler,cartHandler,wishHandler)
+	router.SetUpRouter(app, userHandler, adminHandler,cartHandler,wishHandler,orderHandler)
 }
 
 func startServer(app *fiber.App, cfg *config.Config) {

@@ -17,5 +17,4 @@ func SetUpCartRouter(api fiber.Router,cartH *handler.CartHandler){
 		routes.Get("/",cartH.GetCart)
 		routes.Put("/:id", cartH.UpdateQuantity)
 	}
-
 }
