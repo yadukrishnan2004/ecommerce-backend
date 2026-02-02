@@ -15,39 +15,39 @@ type AdminUpdateUserInput struct {
 	IsBlocked *bool
 }
 
-type Product struct{
-    Name         string   `json:"name" validate:"required"`
-    Price        int      `json:"price" validate:"required"`
-    Description  string   `json:"desc" validate:"required"`
-    Catogery     string   `json:"catoger" validate:"required"`
-    Offer        string   `json:"offer,omitempty"`
-    OfferPrice   int      `json:"offerprice,omitempty"`
+type Product struct {
+	Name        string `json:"name" validate:"required"`
+	Price       int    `json:"price" validate:"required"`
+	Description string `json:"desc" validate:"required"`
+	Category    string `json:"category" validate:"required"`
+	Offer       string `json:"offer,omitempty"`
+	OfferPrice  int    `json:"offerprice,omitempty"`
 }
 
 type AdminUseCase interface {
 	UpdateUser(ctx context.Context, userId uint, input AdminUpdateUserInput) (*domain.User, error)
 	BlockUser(ctx context.Context, userId uint) (string, error)
-	AddNewProduct(ctx context.Context,newProduct *domain.Product)(error)
-	GetAllProducts(ctx context.Context)([]domain.Product,error)
-	GetProduct(ctx context.Context,id uint,)(*domain.Product,error)
-	DeleteProduct(ctx context.Context,id uint) error
-	DeleteUser(ctx context.Context,userID uint,) error
-	Production(ctx context.Context, status string) ([]domain.Product,error )
-	UpdateStatus(ctx context.Context,id uint,status string) error
+	AddNewProduct(ctx context.Context, newProduct *domain.Product) error
+	GetAllProducts(ctx context.Context) ([]domain.Product, error)
+	GetProduct(ctx context.Context, id uint) (*domain.Product, error)
+	DeleteProduct(ctx context.Context, id uint) error
+	DeleteUser(ctx context.Context, userID uint) error
+	Production(ctx context.Context, status string) ([]domain.Product, error)
+	UpdateStatus(ctx context.Context, id uint, status string) error
 	GetAllOrders(ctx context.Context) ([]domain.Order, error)
 	UpdateOrderStatus(ctx context.Context, orderID uint, status string) error
 }
 
 type adminUseCase struct {
-	repo domain.UserRepository
+	repo        domain.UserRepository
 	productrepo domain.ProductRepository
 	oredersRepo domain.OrderRepository
 }
 
-func NewAdminUseCase(rep domain.UserRepository,productrepo domain.ProductRepository,oredersRepo domain.OrderRepository) AdminUseCase {
+func NewAdminUseCase(rep domain.UserRepository, productrepo domain.ProductRepository, oredersRepo domain.OrderRepository) AdminUseCase {
 	return &adminUseCase{
-		repo: rep,
-		productrepo:productrepo,
+		repo:        rep,
+		productrepo: productrepo,
 		oredersRepo: oredersRepo,
 	}
 }
@@ -117,7 +117,7 @@ func (s *adminUseCase) BlockUser(
 func (s *adminUseCase) AddNewProduct(
 	ctx context.Context,
 	newProduct *domain.Product,
-)(error){
+) error {
 	if err := s.productrepo.Create(ctx, newProduct); err != nil {
 		return errors.New("repository error on creating a repo")
 	}
@@ -126,7 +126,7 @@ func (s *adminUseCase) AddNewProduct(
 
 func (s *adminUseCase) GetAllProducts(
 	ctx context.Context,
-)([]domain.Product,error){
+) ([]domain.Product, error) {
 
 	product, err := s.productrepo.GetAll(ctx)
 	if err != nil {
@@ -138,8 +138,8 @@ func (s *adminUseCase) GetAllProducts(
 func (s *adminUseCase) GetProduct(
 	ctx context.Context,
 	id uint,
-)(*domain.Product,error){
-	product, err:= s.productrepo.GetByID(ctx,id)
+) (*domain.Product, error) {
+	product, err := s.productrepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -150,70 +150,65 @@ func (s *adminUseCase) DeleteProduct(
 	ctx context.Context,
 	id uint,
 ) error {
-	err:= s.productrepo.Delete(ctx,id)
+	err := s.productrepo.Delete(ctx, id)
 	if err != nil {
-		return  err
+		return err
 	}
 	return nil
 }
 
 func (s *adminUseCase) DeleteUser(
 	ctx context.Context,
-	 userID uint,
-	 )  error {
-	return  s.repo.Delete(ctx,userID)
+	userID uint,
+) error {
+	return s.repo.Delete(ctx, userID)
 }
 
 func (s *adminUseCase) Production(
 	ctx context.Context,
-	 status string,
-	 ) ([]domain.Product,error ){
-		product,err := s.productrepo.GetByProduction(ctx,status)
-		if err != nil {
-			return nil, err
-		}
-		return product,nil
- }	
+	status string,
+) ([]domain.Product, error) {
+	product, err := s.productrepo.GetByProduction(ctx, status)
+	if err != nil {
+		return nil, err
+	}
+	return product, nil
+}
 
- func (s *adminUseCase) UpdateStatus(ctx context.Context,id uint,status string) error{
+func (s *adminUseCase) UpdateStatus(ctx context.Context, id uint, status string) error {
 	validStatuses := map[string]bool{
-        "active":       true,
-        "coming_soon":     true,
-        "out_of_stock": true,
-    }
-    
-    if !validStatuses[status] {
-        return errors.New("invalid status value")
-    }
-	product, err := s.productrepo.GetByID(ctx,id)
+		"active":       true,
+		"coming_soon":  true,
+		"out_of_stock": true,
+	}
+
+	if !validStatuses[status] {
+		return errors.New("invalid status value")
+	}
+	product, err := s.productrepo.GetByID(ctx, id)
 	if err != nil {
 		return err
 	}
 	product.Production = status
-	return s.productrepo.Update(ctx,product)
- }
+	return s.productrepo.Update(ctx, product)
+}
 
 func (s *adminUseCase) GetAllOrders(ctx context.Context) ([]domain.Order, error) {
-    return s.oredersRepo.GetAllOrders(ctx)
+	return s.oredersRepo.GetAllOrders(ctx)
 }
 
 func (s *adminUseCase) UpdateOrderStatus(ctx context.Context, orderID uint, status string) error {
- 
-    validStatuses := map[string]bool{
-        "Pending":   true,
-        "Shipped":   true,
-        "Delivered": true,
-        "Cancelled": true,
-    }
 
-    if !validStatuses[status] {
-        return errors.New("invalid status value")
-    }
+	validStatuses := map[string]bool{
+		"Pending":   true,
+		"Shipped":   true,
+		"Delivered": true,
+		"Cancelled": true,
+	}
 
-    return s.oredersRepo.UpdateStatus(ctx, orderID, status)
+	if !validStatuses[status] {
+		return errors.New("invalid status value")
+	}
+
+	return s.oredersRepo.UpdateStatus(ctx, orderID, status)
 }
-
-
-
-
-

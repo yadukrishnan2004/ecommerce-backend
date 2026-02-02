@@ -13,11 +13,11 @@ type Product struct {
 	Name        string     `json:"name" validate:"required"`
 	Price       int        `json:"price" validate:"required"`
 	Description string     `json:"desc" validate:"required"`
-	Catogery    string     `json:"catoger" validate:"required"`
+	Category    string     `json:"category" validate:"required"`
 	Offer       string     `json:"offer,omitempty"`
 	OfferPrice  int        `json:"offerprice,omitempty"`
-	Production  string	   `json:"production,omitempty"`
-	Stock		uint	   `json:"stock"`
+	Production  string     `json:"production,omitempty"`
+	Stock       uint       `json:"stock"`
 }
 
 type ProductRepository interface {
