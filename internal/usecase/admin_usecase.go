@@ -34,17 +34,21 @@ type AdminUseCase interface {
 	DeleteUser(ctx context.Context,userID uint,) error
 	Production(ctx context.Context, status string) ([]domain.Product,error )
 	UpdateStatus(ctx context.Context,id uint,status string) error
+	GetAllOrders(ctx context.Context) ([]domain.Order, error)
+	UpdateOrderStatus(ctx context.Context, orderID uint, status string) error
 }
 
 type adminUseCase struct {
 	repo domain.UserRepository
 	productrepo domain.ProductRepository
+	oredersRepo domain.OrderRepository
 }
 
-func NewAdminUseCase(rep domain.UserRepository,productrepo domain.ProductRepository) AdminUseCase {
+func NewAdminUseCase(rep domain.UserRepository,productrepo domain.ProductRepository,oredersRepo domain.OrderRepository) AdminUseCase {
 	return &adminUseCase{
 		repo: rep,
 		productrepo:productrepo,
+		oredersRepo: oredersRepo,
 	}
 }
 
@@ -188,6 +192,28 @@ func (s *adminUseCase) Production(
 	product.Production = status
 	return s.productrepo.Update(ctx,product)
  }
+
+func (s *adminUseCase) GetAllOrders(ctx context.Context) ([]domain.Order, error) {
+    return s.oredersRepo.GetAllOrders(ctx)
+}
+
+func (s *adminUseCase) UpdateOrderStatus(ctx context.Context, orderID uint, status string) error {
+ 
+    validStatuses := map[string]bool{
+        "Pending":   true,
+        "Shipped":   true,
+        "Delivered": true,
+        "Cancelled": true,
+    }
+
+    if !validStatuses[status] {
+        return errors.New("invalid status value")
+    }
+
+    return s.oredersRepo.UpdateStatus(ctx, orderID, status)
+}
+
+
 
 
 

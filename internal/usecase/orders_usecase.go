@@ -9,6 +9,7 @@ import (
 
 type OrderService interface {
     PlaceOrder(ctx context.Context, userID uint) error
+    GetOrderHistory(ctx context.Context, userID uint) ([] domain.Order, error)   
 }
 
 type orderService struct {
@@ -24,7 +25,6 @@ func NewOrderService(oRepo domain.OrderRepository, cRepo domain.CartRepository) 
 }
 
 func (s *orderService) PlaceOrder(ctx context.Context, userID uint) error {
-    // 1. Get Cart Items
     cartItems, err := s.cartRepo.GetCart(ctx, userID)
     if err != nil {
         return err
@@ -33,12 +33,10 @@ func (s *orderService) PlaceOrder(ctx context.Context, userID uint) error {
         return errors.New("cart is empty")
     }
 
-    // 2. Calculate Total & Prepare Order Items
     var totalAmount float64
     var orderItems []domain.OrderItem
 
     for _, cartItem := range cartItems {
-        // Check Stock
         if cartItem.Product.Stock < cartItem.Quantity {
             return errors.New("product " + cartItem.Product.Name + " is out of stock")
         }
@@ -62,3 +60,9 @@ func (s *orderService) PlaceOrder(ctx context.Context, userID uint) error {
 
     return s.orderRepo.CreateOrder(ctx, order)
 }
+
+func (s *orderService) GetOrderHistory(ctx context.Context, userID uint) ([]domain.Order, error) {
+    return s.orderRepo.GetOrdersByUserID(ctx, userID)
+}
+
+

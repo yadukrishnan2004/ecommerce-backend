@@ -169,4 +169,41 @@ func (h *AdminHandler) UpdateStatus(c *fiber.Ctx) error {
 	return response.Response(c,http.StatusOK,"status updated",nil,nil)
 }
 
+func (h *AdminHandler) GetAllOrders(c *fiber.Ctx) error {
+
+    orders, err := h.svc.GetAllOrders(c.Context())
+    if err != nil {
+        return response.Response(c,fiber.StatusInternalServerError,"Failed to fetch orders",nil,nil)
+    }
+
+     allorders:=dto.Orders{
+        Count: len(orders),
+        Items: orders,
+    }
+
+    return response.Response(c,fiber.StatusOK,"get Order successfully",allorders,nil)
+}
+
+func (h *AdminHandler) UpdateOrdersStatus(c *fiber.Ctx) error {
+
+    orderID, err := c.ParamsInt("id")
+    if err != nil {
+        return response.Response(c,http.StatusBadRequest,"invalid orderId",nil,nil)
+    }
+    type StatusReq struct {
+        Status string `json:"status"`
+    }
+    req := new(StatusReq)
+    if err := c.BodyParser(req); err != nil {
+        return response.Response(c,http.StatusBadRequest,"invalid input",nil,nil)
+    }
+
+    err = h.svc.UpdateOrderStatus(c.Context(), uint(orderID), req.Status)
+    if err != nil {
+        return response.Response(c,http.StatusInternalServerError,"status not updated",nil,err.Error())
+    }
+
+    return response.Response(c,http.StatusOK,"order status updated",nil,nil)
+}
+
 

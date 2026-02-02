@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler/dto"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/pkg"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/usecase"
-	"github.com/yadukrishnan2004/ecommerce-backend/internal/utils/constants"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/utils/response"
 )
 
@@ -117,7 +115,7 @@ func (h *UserHandler) Logout(c *fiber.Ctx) error {
 func (h *UserHandler) Forgotpassword(c *fiber.Ctx) error {
 	var getemail dto.Getemail
 	if err := c.BodyParser(&getemail); err != nil {
-		return response.Response(c, constants.BADREQUEST, "email is not valid", nil, err.Error())
+		return response.Response(c, http.StatusBadRequest, "email is not valid", nil, err.Error())
 	}
 	if err := pkg.Validate.Struct(getemail); err != nil {
 		return response.Response(c, http.StatusBadRequest, "invalid request", getemail, err.Error())
@@ -203,4 +201,49 @@ func (h *UserHandler) GetProfile(c *fiber.Ctx) error {
 		return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, err.Error())
 	}
 	return response.Response(c, http.StatusOK, user.Role, user, nil)
+}
+
+func (h *UserHandler) GetOrder(c *fiber.Ctx) error {
+    userIDFloat, ok := c.Locals("user_id").(float64)
+    if !ok {
+        return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, nil)
+    }
+
+    
+    orderID, err := c.ParamsInt("id")
+    if err != nil {
+        return response.Response(c,http.StatusBadRequest,"invalid user id",nil,nil)
+    }
+
+    
+    order, err := h.svc.GetOrderDetail(c.Context(), uint(orderID), uint(userIDFloat))
+    if err != nil {
+    
+        return response.Response(c,http.StatusInternalServerError,"user not found",nil,nil)
+    }
+
+    return response.Response(c,http.StatusOK,"get order",order,nil)
+}
+
+func (h *UserHandler) CancelOrder(c *fiber.Ctx) error {
+
+    userIDFloat, ok := c.Locals("user_id").(float64)
+    if !ok {
+        return response.Response(c,http.StatusBadRequest,"unauthrized",nil,nil)
+    }
+
+
+    orderID, err := c.ParamsInt("id")
+    if err != nil {
+        return response.Response(c,http.StatusBadRequest,"invalid order id",nil,nil)
+    }
+
+
+    err = h.svc.CancelOrder(c.Context(), uint(orderID), uint(userIDFloat))
+    if err != nil {
+
+        return response.Response(c,http.StatusInternalServerError,"oreder cannot cancel",nil,err.Error())
+    }
+
+    return response.Response(c,http.StatusOK,"Order cancelled successfully",nil,nil)
 }

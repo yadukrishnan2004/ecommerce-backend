@@ -28,29 +28,33 @@ type UserUseCase interface {
 	ResetPassword(ctx context.Context, email, code, newPassword string) error
 	UpdateProfile(ctx context.Context, userID uint, input UpdateUserInput) error
 	GetProfile(ctx context.Context, userID uint) (*UserProfileOutput, error)
+	GetOrderDetail(ctx context.Context, orderID, userID uint) (*domain.Order, error)
+	CancelOrder(ctx context.Context, orderID, userID uint) error
 }
 
 type userUseCase struct {
 	repo domain.UserRepository
 	otp  domain.NotificationClient
 	jwt  auth.JwtService
+	orders domain.OrderRepository
 }
 
-func NewUserUseCase(repo domain.UserRepository, otp domain.NotificationClient, jwt auth.JwtService) UserUseCase {
+func NewUserUseCase(repo domain.UserRepository, otp domain.NotificationClient, jwt auth.JwtService,oreders domain.OrderRepository) UserUseCase {
 	return &userUseCase{
 		repo: repo,
 		otp:  otp,
 		jwt:  jwt,
+		orders: oreders,
 	}
 }
 
 func (s *userUseCase) SignUp(ctx context.Context, name, email, password string) (string, error) {
-	// Check if user exists
+	
 	user, err := s.repo.GetByEmail(ctx, email)
 
 	if err == nil && user.ID != 0 {
 
-		//  already active, stop here.
+	
 		if user.IsActive {
 			return "", errors.New("user already exists")
 		}
@@ -61,29 +65,28 @@ func (s *userUseCase) SignUp(ctx context.Context, name, email, password string) 
 
 		otp := helper.GenerateOtp()
 
-		// Update the existing user struct fields
-		user.Name = name // Update name in case they fixed a typo
+		user.Name = name 
 		user.Password = hashedPass
 		user.Otp = otp
 		user.OtpExpire = time.Now().Add(10 * time.Minute).Unix()
 		user.Role = "user"
 
-		// Save the updates to the Database
+	
 		if err := s.repo.Update(ctx, user); err != nil {
 			return "", err
 		}
-		//token generation using email
+
 		token, erro := s.jwt.GenerateAuthToken(user.Role, user.Email, 10*60)
 		if erro != nil {
 			return "", errors.New("forgot pass is not generated")
 		}
-		// Send the OTP
+	
 		s.otp.SendOtp(user.Email, user.Otp)
 
 		return token, nil
 	}
 
-	//  User Does Not Exist (Brand New Registration)
+
 
 	hashedPass, err := helper.Hash(password)
 	if err != nil {
@@ -101,7 +104,7 @@ func (s *userUseCase) SignUp(ctx context.Context, name, email, password string) 
 		OtpExpire: time.Now().Add(10 * time.Minute).Unix(),
 	}
 
-	// Create the new user in DB
+	
 	if err := s.repo.Create(ctx, newUser); err != nil {
 		return "", err
 	}
@@ -121,7 +124,7 @@ func (s *userUseCase) VerifyOtp(ctx context.Context, email, code string) error {
 		return errors.New("user not found")
 	}
 
-	//  Validate Logic
+
 	if user.IsActive {
 		return errors.New("user already active")
 	}
@@ -132,9 +135,9 @@ func (s *userUseCase) VerifyOtp(ctx context.Context, email, code string) error {
 		return errors.New("code expired")
 	}
 
-	//  Activate User
+
 	user.IsActive = true
-	user.Otp = "" // Clear the code
+	user.Otp = "" 
 	return s.repo.Update(ctx, user)
 }
 
@@ -144,17 +147,17 @@ func (s *userUseCase) SignIn(ctx context.Context, email, password string) (strin
 		return "", errors.New("invalid email or password")
 	}
 
-	//check the user is active or not
+
 	if !user.IsActive {
 		return "", errors.New("account not verified")
 	}
 
-	// checking the password
+
 	if err := helper.VerifyHash(user.Password, password); !err {
 		return "", errors.New("invalid email or password")
 	}
 
-	// JWT token generation
+
 	acc, erro := s.jwt.GenerateToken(user.ID, s.jwt.AccessTTL, user.Role)
 	if erro != nil {
 		return "", erro
@@ -230,6 +233,25 @@ func (s *userUseCase) GetProfile(ctx context.Context, userID uint) (*UserProfile
 		Role:  users.Role,
 	}
 	return &user, nil
+}
+
+func (s *userUseCase) GetOrderDetail(ctx context.Context, orderID, userID uint) (*domain.Order, error) {
+    return s.orders.GetByIDAndUser(ctx, orderID, userID)
+}
+
+
+func (s *userUseCase) CancelOrder(ctx context.Context, orderID, userID uint) error {
+
+    order, err := s.orders.GetByIDAndUser(ctx, orderID, userID)
+    if err != nil {
+        return errors.New("order not found")
+    }
+
+    if order.Status != "Pending" {
+        return errors.New("only pending orders can be cancelled")
+    }
+
+    return s.orders.CancelOrder(ctx, orderID, userID)
 }
 
 

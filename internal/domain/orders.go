@@ -1,11 +1,14 @@
 package domain
 
 import (
-    "context"
-    "time"
+	"context"
+	"time"
+
+	"gorm.io/gorm"
 )
 
 type Order struct {
+    gorm.Model
     ID          uint        `json:"id" gorm:"primaryKey"`
     UserID      uint        `json:"user_id"`
     TotalAmount float64     `json:"total_amount"`
@@ -15,6 +18,7 @@ type Order struct {
 }
 
 type OrderItem struct {
+    gorm.Model
     ID        uint    `json:"id" gorm:"primaryKey"`
     OrderID   uint    `json:"order_id"`
     ProductID uint    `json:"product_id"`
@@ -25,4 +29,9 @@ type OrderItem struct {
 
 type OrderRepository interface {
     CreateOrder(ctx context.Context, order *Order) error
+    GetOrdersByUserID(ctx context.Context, userID uint) ([]Order, error)
+    GetAllOrders(ctx context.Context) ([]Order, error)
+    UpdateStatus(ctx context.Context, orderID uint, status string) error
+    GetByIDAndUser(ctx context.Context, orderID, userID uint) (*Order, error)
+    CancelOrder(ctx context.Context, orderID, userID uint) error
 }

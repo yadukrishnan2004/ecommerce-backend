@@ -89,8 +89,8 @@ func initializeDependencies(
 	jwtService := auth.NewJwtService(cfg.JWT)
 
 	// Use Cases
-	userUseCase := usecase.NewUserUseCase(userRepo, notifier, *jwtService)
-	adminUseCase := usecase.NewAdminUseCase(userRepo,productRepo)
+	userUseCase := usecase.NewUserUseCase(userRepo, notifier, *jwtService,orderRepo)
+	adminUseCase := usecase.NewAdminUseCase(userRepo,productRepo,orderRepo	)
 	cartService := usecase.NewCartService(cartRepo, productRepo)
 	wishService := usecase.NewWishlistService(wishRepo, productRepo)
 	orderService := usecase.NewOrderService(orderRepo, cartRepo)
