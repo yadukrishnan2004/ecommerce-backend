@@ -3,7 +3,9 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler/dto"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/pkg"
@@ -32,6 +34,28 @@ func (h *UserHandler) SignUp(c *fiber.Ctx) error {
 		return response.Response(c, http.StatusBadRequest, "invalid request", request, err.Error())
 	}
 
+	// request.Name = strings.TrimSpace(request.Name)
+	if strings.Contains(request.Name," "){
+		return response.Response(c, http.StatusBadRequest, "name cannot contain spaces", request.Name, "invalid name")
+	}
+
+	if strings.ContainsAny(request.Name, ".*#!+=-()/<>,:;'") {
+    return response.Response(c, http.StatusBadRequest, "name contains invalid characters .*#!+=-()/<>,:;'", request.Name, "invalid name")
+	}
+
+	request.Password = strings.TrimSpace(request.Password)
+	if strings.Contains(request.Password," "){
+		return response.Response(c, http.StatusBadRequest, "password cannot contain spaces", request.Password, "invalid password")
+	}
+
+	if !strings.HasSuffix(request.Email, "@gmail.com"){
+		return response.Response(c, http.StatusBadRequest, "only gmail.com emails allowed", request.Email, "invalid email domain")
+	}
+
+	if strings.ContainsAny(request.Password, ".*#!+=-()/<>,:;'@") {
+    return response.Response(c, http.StatusBadRequest, "password contains invalid characters ",".*#!+=-()/<>,:;'", "invalid password")
+	}
+
 	token, err := h.svc.SignUp(c.Context(), request.Name, request.Email, request.Password)
 	if err != nil {
 		return response.Response(c, http.StatusInternalServerError, "please try again later", nil, err.Error())
@@ -47,7 +71,7 @@ func (h *UserHandler) SignUp(c *fiber.Ctx) error {
 	}
 	c.Cookie(&cookie)
 
-	return response.Response(c, http.StatusOK, fmt.Sprintf("otp is send to your %s", request.Email), request, nil)
+	return response.Response(c, http.StatusOK, fmt.Sprintf("otp is send to your %s", request.Email), nil, nil)
 }
 
 func (h *UserHandler) OtpVerify(c *fiber.Ctx) error {
@@ -63,10 +87,19 @@ func (h *UserHandler) OtpVerify(c *fiber.Ctx) error {
 	if err := pkg.Validate.Struct(otp); err != nil {
 		return response.Response(c, http.StatusBadRequest, "invalid request", otp, err.Error())
 	}
-
+	
 	if err := h.svc.VerifyOtp(c.Context(), email, otp.Otp); err != nil {
 		return response.Response(c, http.StatusNotAcceptable, "invalid code", otp, err.Error())
 	}
+
+		cookie := fiber.Cookie{
+		Name:     "jwtverify",
+		Value:    "",
+		Expires:  time.Now().Add(-time.Hour),
+		HTTPOnly: true,
+		}
+
+	c.Cookie(&cookie)
 	return response.Response(c, http.StatusOK, "user created", nil, nil)
 }
 
@@ -76,8 +109,13 @@ func (h *UserHandler) SignIn(c *fiber.Ctx) error {
 	if err := c.BodyParser(&request); err != nil {
 		return response.Response(c, http.StatusBadRequest, "invalid request", request, err.Error())
 	}
+
 	if err := pkg.Validate.Struct(request); err != nil {
 		return response.Response(c, http.StatusBadRequest, "invalid request", request, err.Error())
+	}
+
+	if strings.ContainsAny(request.Password, ".*#!+=-()/<>,:;'") {
+    return response.Response(c, http.StatusBadRequest, "password contains invalid characters", nil, "invalid password")
 	}
 
 	token, err := h.svc.SignIn(c.Context(), request.Email, request.Password)
@@ -121,13 +159,17 @@ func (h *UserHandler) Forgotpassword(c *fiber.Ctx) error {
 		return response.Response(c, http.StatusBadRequest, "invalid request", getemail, err.Error())
 	}
 
+	if !strings.HasSuffix(getemail.Email, "@gmail.com") {
+    return response.Response(c, http.StatusBadRequest, "only gmail.com emails allowed", nil, "invalid email domain")
+}
+
 	token, err := h.svc.ForgotPassword(c.Context(), getemail.Email)
 	if err != nil {
 		return response.Response(c, http.StatusInternalServerError, "please try again later", getemail, err.Error())
 	}
 
 	cookie := fiber.Cookie{
-		Name:     "forgetpassword",
+		Name:     "jwtverify",
 		Value:    token,
 		Expires:  time.Now().Add(10 * time.Minute),
 		HTTPOnly: true,
@@ -153,12 +195,16 @@ func (h *UserHandler) Resetpassword(c *fiber.Ctx) error {
 		return response.Response(c, http.StatusBadRequest, "invalid request", Reset, err.Error())
 	}
 
+	if strings.ContainsAny(Reset.Newpassword, ".*#!+=-()/<>,:;'") {
+    return response.Response(c, http.StatusBadRequest, "password contains invalid characters", nil, "invalid password")
+	}
+
 	if err := h.svc.ResetPassword(c.Context(), email, Reset.Code, Reset.Newpassword); err != nil {
 		return response.Response(c, http.StatusInternalServerError, "something went wrong with reset password", nil, err.Error())
 	}
 
 	cookie := fiber.Cookie{
-		Name:     "forgetpassword",
+		Name:     "jwtverify",
 		Value:    "",
 		Expires:  time.Now().Add(-time.Hour),
 		HTTPOnly: true,
@@ -179,7 +225,15 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 		return response.Response(c, http.StatusBadRequest, "invalid input", nil, err.Error())
 	}
 
-	// Map DTO to Usecase Input
+	if strings.Contains(*req.Name," "){
+		return response.Response(c, http.StatusBadRequest, "name cannot contain spaces", req.Name, "invalid name")
+	}
+
+	if strings.ContainsAny(*req.Name, ".*#!+=-()/<>,:;'") {
+    return response.Response(c, http.StatusBadRequest, "name contains invalid characters .*#!+=-()/<>,:;'", req.Name, "invalid name")
+	}
+
+	// update username input
 	input := usecase.UpdateUserInput{
 		Name: req.Name,
 	}
