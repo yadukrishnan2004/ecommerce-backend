@@ -10,6 +10,7 @@ type Product struct {
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
 	DeletedAt   *time.Time `json:"deleted_at,omitempty"`
+    Images      []string   `json:"images"`
 	Name        string     `json:"name" validate:"required"`
 	Price       int        `json:"price" validate:"required"`
 	Description string     `json:"desc" validate:"required"`

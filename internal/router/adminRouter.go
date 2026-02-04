@@ -11,7 +11,7 @@ func SetUpAdminRouter(api fiber.Router,adminH *handler.AdminHandler){
 	routes:=admin.Group("/")
 	routes.Use(middleware.Adminmiddleware)
 	{
-		routes.Patch("/update",adminH.UpdateUser)
+		routes.Patch("/update/:id",adminH.UpdateUser)
 		routes.Patch("/production/:id",adminH.UpdateStatus)
 		routes.Post("/block/:id",adminH.BlockUser)
 		routes.Post("/product",adminH.AddNewProduct)

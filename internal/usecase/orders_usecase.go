@@ -9,18 +9,21 @@ import (
 
 type OrderService interface {
     PlaceOrder(ctx context.Context, userID uint) error
-    GetOrderHistory(ctx context.Context, userID uint) ([] domain.Order, error)   
+    GetOrderHistory(ctx context.Context, userID uint) ([] domain.Order, error)  
+    BuyNow(ctx context.Context, userID, productID uint, quantity int) error 
 }
 
 type orderService struct {
     orderRepo domain.OrderRepository
     cartRepo  domain.CartRepository 
+    Product   domain.ProductRepository
 }
 
-func NewOrderService(oRepo domain.OrderRepository, cRepo domain.CartRepository) OrderService {
+func NewOrderService(oRepo domain.OrderRepository, cRepo domain.CartRepository,pRepo  domain.ProductRepository) OrderService {
     return &orderService{
         orderRepo: oRepo,
         cartRepo:  cRepo,
+        Product: pRepo,
     }
 }
 
@@ -63,6 +66,34 @@ func (s *orderService) PlaceOrder(ctx context.Context, userID uint) error {
 
 func (s *orderService) GetOrderHistory(ctx context.Context, userID uint) ([]domain.Order, error) {
     return s.orderRepo.GetOrdersByUserID(ctx, userID)
+}
+
+func (s *orderService) BuyNow(ctx context.Context, userID, productID uint, quantity int) error {
+    product, err := s.Product.GetByID(ctx, productID)
+    if err != nil {
+        return errors.New("product not found")
+    }
+
+  
+    if product.Stock < uint(quantity) {
+        return errors.New("insufficient stock")
+    }
+
+    totalAmount := product.Price * quantity
+
+    orderItem := domain.OrderItem{
+        ProductID: productID,
+        Quantity:  quantity,
+        Price:    float64(product.Price),
+    }
+
+    order := &domain.Order{
+        UserID:      userID,
+        TotalAmount: float64(totalAmount),
+        Status:      "Pending",
+        Items:       []domain.OrderItem{orderItem},
+    }
+    return s.orderRepo.CreateSingleOrder(ctx, order)
 }
 
 

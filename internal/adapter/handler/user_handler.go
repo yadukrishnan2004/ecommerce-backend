@@ -258,7 +258,7 @@ func (h *UserHandler) GetProfile(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) GetOrder(c *fiber.Ctx) error {
-    userIDFloat, ok := c.Locals("user_id").(float64)
+    userIDFloat, ok := c.Locals("userid").(float64)
     if !ok {
         return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, nil)
     }
@@ -279,9 +279,9 @@ func (h *UserHandler) GetOrder(c *fiber.Ctx) error {
     return response.Response(c,http.StatusOK,"get order",order,nil)
 }
 
-func (h *UserHandler) CancelOrder(c *fiber.Ctx) error {
+func (h *UserHandler) 	CancelOrder(c *fiber.Ctx) error {
 
-    userIDFloat, ok := c.Locals("user_id").(float64)
+    userIDFloat, ok := c.Locals("userid").(float64)
     if !ok {
         return response.Response(c,http.StatusBadRequest,"unauthrized",nil,nil)
     }

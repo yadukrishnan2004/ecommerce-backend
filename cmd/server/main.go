@@ -20,6 +20,7 @@ import (
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/infrastructure"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/router"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/usecase"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/utils/seeding"
 )
 
 func main() {
@@ -29,16 +30,19 @@ func main() {
 	// 2. Database Connection
 	db := connectDB(cfg)
 
+	//admin seeding
+	seeding.AdminSeeding(db, cfg)
+
 	// 3. Initialize Fiber App
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 	})
 
 	// 4. Initialize Dependencies & Routes
-	initializeDependencies(app, db, cfg)
+	InitializeDependencies(app, db, cfg)
 
 	// 5. Start Server with Graceful Shutdown
-	startServer(app, cfg)
+	StartServer(app, cfg)
 }
 
 func connectDB(cfg *config.Config) *gorm.DB {
@@ -61,18 +65,18 @@ func connectDB(cfg *config.Config) *gorm.DB {
 		&repository.Wishlist{},
 		&repository.Order{},
 		&repository.OrderItem{},
-		); err != nil {
+	); err != nil {
 		log.Fatalf("Failed to auto migrate: %v", err)
 	}
 
 	return db
 }
 
-func initializeDependencies(
-	app *fiber.App, 
+func InitializeDependencies(
+	app *fiber.App,
 	db *gorm.DB,
 	cfg *config.Config,
-	) {
+) {
 	// Services & Adapters
 	notifier := notifications.NewEmailNotifier(
 		cfg.SMTP_HOST,
@@ -89,11 +93,11 @@ func initializeDependencies(
 	jwtService := auth.NewJwtService(cfg.JWT)
 
 	// Use Cases
-	userUseCase := usecase.NewUserUseCase(userRepo, notifier, *jwtService,orderRepo)
-	adminUseCase := usecase.NewAdminUseCase(userRepo,productRepo,orderRepo	)
+	userUseCase := usecase.NewUserUseCase(userRepo, notifier, *jwtService, orderRepo)
+	adminUseCase := usecase.NewAdminUseCase(userRepo, productRepo, orderRepo)
 	cartService := usecase.NewCartService(cartRepo, productRepo)
 	wishService := usecase.NewWishlistService(wishRepo, productRepo)
-	orderService := usecase.NewOrderService(orderRepo, cartRepo)
+	orderService := usecase.NewOrderService(orderRepo, cartRepo, productRepo)
 
 	// Handlers
 	userHandler := handler.NewUserHandler(userUseCase)
@@ -103,10 +107,10 @@ func initializeDependencies(
 	orderHandler := handler.NewOrderHandler(orderService)
 
 	// Routes
-	router.SetUpRouter(app, userHandler, adminHandler,cartHandler,wishHandler,orderHandler)
+	router.SetUpRouter(app, userHandler, adminHandler, cartHandler, wishHandler, orderHandler)
 }
 
-func startServer(app *fiber.App, cfg *config.Config) {
+func StartServer(app *fiber.App, cfg *config.Config) {
 	// Run server in a goroutine
 	go func() {
 		addr := fmt.Sprintf(":%s", cfg.App_Port)

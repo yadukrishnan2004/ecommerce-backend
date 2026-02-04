@@ -14,7 +14,7 @@ func SetupWishlistRoutes(api fiber.Router, wishH *handler.WishlistHandler) {
 		routes.Post("/add/:id",wishH.AddToWishlist)
 		routes.Delete("/remove/:id",wishH.RemoveFromWishlist)
 		routes.Delete("/", wishH.ClearWishlist)
-		routes.Get("/wishlist",wishH.GetWishlist)
+		routes.Get("/",wishH.GetWishlist)
 	}
 
 }

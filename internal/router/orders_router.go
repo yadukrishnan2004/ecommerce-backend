@@ -12,6 +12,7 @@ func SetupOrderRoutes(api fiber.Router, orderH *handler.OrderHandler) {
 	routes.Use(middleware.UserMiddleware)
 	{
 	routes.Post("/", orderH.PlaceOrder)
-	order.Get("/", orderH.GetOrderHistory)
+	routes.Get("/", orderH.GetOrderHistory)
+	routes.Post("/buy-now", orderH.BuyNow)
 	}
 }

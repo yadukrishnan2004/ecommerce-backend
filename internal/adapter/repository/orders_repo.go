@@ -151,3 +151,28 @@ func (r *orderRepo) CancelOrder(ctx context.Context, orderID, userID uint) error
         return nil
     })
 }
+
+func (r *orderRepo) CreateSingleOrder(ctx context.Context, order *domain.Order) error {
+    return r.db.Transaction(func(tx *gorm.DB) error {
+        if err := tx.Create(order).Error; err != nil {
+            return err
+        }
+
+        for _, item := range order.Items {
+            item.OrderID = order.ID
+            
+            if err := tx.Create(&item).Error; err != nil {
+                return err
+            }
+
+ 
+            if err := tx.Model(&domain.Product{}).
+                Where("id = ?", item.ProductID).
+                Update("stock", gorm.Expr("stock - ?", item.Quantity)).Error; err != nil {
+                return err
+            }
+        }
+        
+        return nil 
+    })
+}

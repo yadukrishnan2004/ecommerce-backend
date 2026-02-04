@@ -29,6 +29,7 @@ type OrderItem struct {
 
 type OrderRepository interface {
     CreateOrder(ctx context.Context, order *Order) error
+    CreateSingleOrder(ctx context.Context, order *Order) error
     GetOrdersByUserID(ctx context.Context, userID uint) ([]Order, error)
     GetAllOrders(ctx context.Context) ([]Order, error)
     UpdateStatus(ctx context.Context, orderID uint, status string) error

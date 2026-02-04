@@ -9,11 +9,12 @@ type AdminUpdateUserRequest struct {
 }
 
 type AddNewProduct struct {
-	Name        string `json:"name" validate:"required"`
-	Price       int    `json:"price" validate:"required"`
-	Description string `json:"desc" validate:"required"`
-	Category    string `json:"category" validate:"required"`
-	Offer       string `json:"offer,omitempty"`
-	OfferPrice  int    `json:"offerprice,omitempty"`
-	Production  string `json:"production,omitempty"`
+	Name        string   `json:"name" validate:"required"`
+	Price       int      `json:"price" validate:"required"`
+	Description string   `json:"desc" validate:"required"`
+	Category    string   `json:"category" validate:"required"`
+	Offer       string   `json:"offer,omitempty"`
+	OfferPrice  int      `json:"offerprice,omitempty"`
+	Production  string   `json:"production,omitempty"`
+	Images      []string `json:"images"`
 }

@@ -84,6 +84,7 @@ func (h *AdminHandler) AddNewProduct(c *fiber.Ctx) error {
 		Offer:       newProduct.Offer,
 		OfferPrice:  newProduct.OfferPrice,
 		Production:  newProduct.Production,
+		Images:      newProduct.Images,
 	}
 	if err := h.svc.AddNewProduct(c.Context(), &product); err != nil {
 		return response.Response(c, http.StatusInternalServerError, "failed add new product", nil, err.Error())
