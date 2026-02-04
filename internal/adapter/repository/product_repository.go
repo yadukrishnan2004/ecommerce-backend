@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/lib/pq"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
 	"gorm.io/gorm"
 )
@@ -15,15 +14,15 @@ type productRepo struct {
 
 type Product struct {
 	gorm.Model
-	Images      pq.StringArray `json:"images" gorm:"type:text[]"`
-	Name        string         `json:"name" validate:"required"`
-	Price       int            `json:"price" validate:"required"`
-	Description string         `json:"desc" validate:"required"`
-	Category    string         `json:"category" validate:"required"`
-	Offer       string         `json:"offer,omitempty"`
-	OfferPrice  int            `json:"offerprice,omitempty"`
-	Production  string         `json:"production,omitempty"`
-	Stock       uint           `json:"stock"`
+	Images      []string `json:"images" gorm:"type:text[]"`
+	Name        string   `json:"name" validate:"required"`
+	Price       int      `json:"price" validate:"required"`
+	Description string   `json:"desc" validate:"required"`
+	Category    string   `json:"category" validate:"required"`
+	Offer       string   `json:"offer,omitempty"`
+	OfferPrice  int      `json:"offerprice,omitempty"`
+	Production  string   `json:"production,omitempty"`
+	Stock       uint     `json:"stock"`
 }
 
 func (p *Product) ToDomain() *domain.Product {
@@ -37,7 +36,7 @@ func (p *Product) ToDomain() *domain.Product {
 			}
 			return nil
 		}(),
-		Images:      []string(p.Images),
+		Images:      p.Images,
 		Name:        p.Name,
 		Price:       p.Price,
 		Description: p.Description,
@@ -61,7 +60,7 @@ func fromDomainProduct(p *domain.Product) *Product {
 			UpdatedAt: p.UpdatedAt,
 			DeletedAt: deletedAt,
 		},
-		Images:      pq.StringArray(p.Images),
+		Images:      p.Images,
 		Name:        p.Name,
 		Price:       p.Price,
 		Description: p.Description,

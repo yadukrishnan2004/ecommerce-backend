@@ -67,7 +67,7 @@ func (h *AdminHandler) BlockUser(c *fiber.Ctx) error {
 
 func (h *AdminHandler) AddNewProduct(c *fiber.Ctx) error {
 
-	var newProduct dto.AddNewProduct
+	var newProduct domain.Product
 
 	if err := c.BodyParser(&newProduct); err != nil {
 		return response.Response(c, http.StatusBadRequest, "invalid input", newProduct, err.Error())
@@ -85,6 +85,7 @@ func (h *AdminHandler) AddNewProduct(c *fiber.Ctx) error {
 		OfferPrice:  newProduct.OfferPrice,
 		Production:  newProduct.Production,
 		Images:      newProduct.Images,
+		Stock: 		 newProduct.Stock,
 	}
 	if err := h.svc.AddNewProduct(c.Context(), &product); err != nil {
 		return response.Response(c, http.StatusInternalServerError, "failed add new product", nil, err.Error())
