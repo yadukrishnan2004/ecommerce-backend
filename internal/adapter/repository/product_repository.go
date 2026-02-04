@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
 	"gorm.io/gorm"
 )
@@ -14,15 +15,15 @@ type productRepo struct {
 
 type Product struct {
 	gorm.Model
-	Images      []string `json:"images" gorm:"type:text[]"`
-	Name        string   `json:"name" validate:"required"`
-	Price       int      `json:"price" validate:"required"`
-	Description string   `json:"desc" validate:"required"`
-	Category    string   `json:"category" validate:"required"`
-	Offer       string   `json:"offer,omitempty"`
-	OfferPrice  int      `json:"offerprice,omitempty"`
-	Production  string   `json:"production,omitempty"`
-	Stock       uint     `json:"stock"`
+	Images      pq.StringArray `json:"images" gorm:"type:text[]"`
+	Name        string         `json:"name" validate:"required"`
+	Price       int            `json:"price" validate:"required"`
+	Description string         `json:"desc" validate:"required"`
+	Category    string         `json:"category" validate:"required"`
+	Offer       string         `json:"offer,omitempty"`
+	OfferPrice  int            `json:"offerprice,omitempty"`
+	Production  string         `json:"production,omitempty"`
+	Stock       uint           `json:"stock"`
 }
 
 func (p *Product) ToDomain() *domain.Product {
@@ -36,7 +37,7 @@ func (p *Product) ToDomain() *domain.Product {
 			}
 			return nil
 		}(),
-		Images:      p.Images,
+		Images:      []string(p.Images),
 		Name:        p.Name,
 		Price:       p.Price,
 		Description: p.Description,
@@ -60,7 +61,7 @@ func fromDomainProduct(p *domain.Product) *Product {
 			UpdatedAt: p.UpdatedAt,
 			DeletedAt: deletedAt,
 		},
-		Images:      p.Images,
+		Images:      pq.StringArray(p.Images),
 		Name:        p.Name,
 		Price:       p.Price,
 		Description: p.Description,
@@ -108,7 +109,7 @@ func (r *productRepo) GetAll(ctx context.Context) ([]domain.Product, error) {
 func (r *productRepo) GetByID(ctx context.Context, id uint) (*domain.Product, error) {
 	var dbProduct Product
 
-	err := r.db.WithContext(ctx).First(&dbProduct, id).Error
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&dbProduct).Error
 	if err != nil {
 		return nil, err
 	}

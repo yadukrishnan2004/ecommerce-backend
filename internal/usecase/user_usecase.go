@@ -31,6 +31,7 @@ type UserUseCase interface {
 	GetProfile(ctx context.Context, userID uint) (*UserProfileOutput, error)
 	GetOrderDetail(ctx context.Context, orderID, userID uint) (*domain.Order, error)
 	CancelOrder(ctx context.Context, orderID, userID uint) error
+	GetAllProducts(ctx context.Context) ([]domain.Product, error)
 }
 
 type userUseCase struct {
@@ -38,14 +39,16 @@ type userUseCase struct {
 	otp  domain.NotificationClient
 	jwt  auth.JwtService
 	orders domain.OrderRepository
+	productrepo domain.ProductRepository
 }
 
-func NewUserUseCase(repo domain.UserRepository, otp domain.NotificationClient, jwt auth.JwtService,oreders domain.OrderRepository) UserUseCase {
+func NewUserUseCase(repo domain.UserRepository, otp domain.NotificationClient, jwt auth.JwtService,oreders domain.OrderRepository,productrepo domain.ProductRepository) UserUseCase {
 	return &userUseCase{
 		repo: repo,
 		otp:  otp,
 		jwt:  jwt,
 		orders: oreders,
+		productrepo: productrepo,
 	}
 }
 
@@ -66,11 +69,11 @@ func (s *userUseCase) SignUp(ctx context.Context, name, email, password string) 
 
 		otp := helper.GenerateOtp()
 
+		user.Role = "user"
 		user.Name = name 
 		user.Password = hashedPass
 		user.Otp = otp
 		user.OtpExpire = time.Now().Add(10 * time.Minute).Unix()
-		user.Role = "user"
 
 	
 		if err := s.repo.Update(ctx, user); err != nil {
@@ -119,6 +122,9 @@ func (s *userUseCase) SignUp(ctx context.Context, name, email, password string) 
 	return token, nil
 }
 
+
+
+
 func (s *userUseCase) VerifyOtp(ctx context.Context, email, code string) error {
 	user, err := s.repo.GetByEmail(ctx, email)
 	if err != nil {
@@ -141,6 +147,9 @@ func (s *userUseCase) VerifyOtp(ctx context.Context, email, code string) error {
 	user.Otp = "" 
 	return s.repo.Update(ctx, user)
 }
+
+
+
 
 func (s *userUseCase) SignIn(ctx context.Context, email, password string) (string, error) {
 	user, err := s.repo.GetByEmail(ctx, email)
@@ -167,6 +176,9 @@ func (s *userUseCase) SignIn(ctx context.Context, email, password string) (strin
 
 }
 
+
+
+
 func (s *userUseCase) ForgotPassword(ctx context.Context, email string) (string, error) {
 	user, err := s.repo.GetByEmail(ctx, email)
 	if err != nil {
@@ -185,6 +197,8 @@ func (s *userUseCase) ForgotPassword(ctx context.Context, email string) (string,
 	}
 	return token, nil
 }
+
+
 
 func (s *userUseCase) ResetPassword(ctx context.Context, email, code, newPassword string) error {
 	user, err := s.repo.GetByEmail(ctx, email)
@@ -253,6 +267,17 @@ func (s *userUseCase) CancelOrder(ctx context.Context, orderID, userID uint) err
     }
 
     return s.orders.CancelOrder(ctx, orderID, userID)
+}
+
+func (s *userUseCase) GetAllProducts(
+	ctx context.Context,
+) ([]domain.Product, error) {
+
+	product, err := s.productrepo.GetAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return product, nil
 }
 
 

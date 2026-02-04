@@ -301,3 +301,11 @@ func (h *UserHandler) 	CancelOrder(c *fiber.Ctx) error {
 
     return response.Response(c,http.StatusOK,"Order cancelled successfully",nil,nil)
 }
+
+func (h *UserHandler) GetAll(c *fiber.Ctx) error {
+	product, err := h.svc.GetAllProducts(c.Context())
+	if err != nil {
+		return response.Response(c, http.StatusInternalServerError, "faile to fetch the products", nil, err.Error())
+	}
+	return response.Response(c, http.StatusOK, "all users list", product, nil)
+}

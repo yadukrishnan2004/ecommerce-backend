@@ -5,9 +5,50 @@ import (
 	"errors"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
 	"gorm.io/gorm"
 )
+
+type OrderProduct struct {
+	gorm.Model
+	Images      pq.StringArray `json:"images" gorm:"type:text[]"`
+	Name        string         `json:"name"`
+	Price       int            `json:"price"`
+	Description string         `json:"desc"`
+	Category    string         `json:"category"`
+	Offer       string         `json:"offer"`
+	OfferPrice  int            `json:"offerprice"`
+	Production  string         `json:"production"`
+	Stock       uint           `json:"stock"`
+}
+
+func (OrderProduct) TableName() string {
+	return "products"
+}
+
+func (p *OrderProduct) ToDomain() *domain.Product {
+	return &domain.Product{
+		ID:        p.ID,
+		CreatedAt: p.CreatedAt,
+		UpdatedAt: p.UpdatedAt,
+		DeletedAt: func() *time.Time {
+			if p.DeletedAt.Valid {
+				return &p.DeletedAt.Time
+			}
+			return nil
+		}(),
+		Images:      []string(p.Images),
+		Name:        p.Name,
+		Price:       p.Price,
+		Description: p.Description,
+		Category:    p.Category,
+		Offer:       p.Offer,
+		OfferPrice:  p.OfferPrice,
+		Production:  p.Production,
+		Stock:       p.Stock,
+	}
+}
 
 type Order struct {
 	gorm.Model
@@ -22,20 +63,18 @@ type Order struct {
 
 type OrderItem struct {
 	gorm.Model
-	ID        uint    `json:"id" gorm:"primaryKey"`
-	OrderID   uint    `json:"order_id"`
-	ProductID uint    `json:"product_id"`
-	Product   Product `json:"product" gorm:"foreignKey:ProductID"`
-	Quantity  int     `json:"quantity"`
-	Price     float64 `json:"price"`
+	ID        uint         `json:"id" gorm:"primaryKey"`
+	OrderID   uint         `json:"order_id"`
+	ProductID uint         `json:"product_id"`
+	Product   OrderProduct `json:"product" gorm:"foreignKey:ProductID"`
+	Quantity  int          `json:"quantity"`
+	Price     float64      `json:"price"`
 }
 
 func (o *Order) ToDomain() *domain.Order {
 	var domainItems []domain.OrderItem
 	for _, i := range o.Items {
 		domainItems = append(domainItems, domain.OrderItem{
-			// ID, CreatedAt etc if needed, but domain.OrderItem embeds gorm.Model?
-			// checking domain definition: yes it does.
 			Model: gorm.Model{
 				ID:        i.ID,
 				CreatedAt: i.CreatedAt,
@@ -70,17 +109,14 @@ func (o *Order) ToDomain() *domain.Order {
 }
 
 func fromDomainOrder(o *domain.Order) *Order {
-	// Note: We might not need deep conversion for CreateOrder as it mainly sets IDs/Quantities
-	// But for consistency:
 	var items []OrderItem
 	for _, i := range o.Items {
 		items = append(items, OrderItem{
 			Model:     i.Model,
 			OrderID:   i.OrderID,
 			ProductID: i.ProductID,
-			// Product: we don't necessarily need to set Product back for creation, just IDs
-			Quantity: i.Quantity,
-			Price:    i.Price,
+			Quantity:  i.Quantity,
+			Price:     i.Price,
 		})
 	}
 
@@ -92,7 +128,6 @@ func fromDomainOrder(o *domain.Order) *Order {
 		Status:      o.Status,
 		CreatedAt:   o.CreatedAt,
 		Items:       items,
-		// User: mostly read-only for order creation
 	}
 }
 
@@ -114,21 +149,15 @@ func (r *orderRepo) CreateOrder(ctx context.Context, order *domain.Order) error 
 		return err
 	}
 
-	// Assign generated ID back to domain
 	order.ID = dbOrder.ID
 	order.CreatedAt = dbOrder.CreatedAt
 
 	for i := range dbOrder.Items {
 		dbOrder.Items[i].OrderID = dbOrder.ID
-		// Sync back to domain items if needed
 	}
 
-	// Original logic had loop for items creation and stock update.
-	// Since we used tx.Create(dbOrder), GORM handles creating Items if they are in the struct.
-	// However, stock update needs to be done.
-
 	for _, item := range dbOrder.Items {
-		if err := tx.Model(&domain.Product{}).
+		if err := tx.Model(&OrderProduct{}).
 			Where("id = ?", item.ProductID).
 			Update("stock", gorm.Expr("stock - ?", item.Quantity)).Error; err != nil {
 			tx.Rollback()
@@ -136,7 +165,7 @@ func (r *orderRepo) CreateOrder(ctx context.Context, order *domain.Order) error 
 		}
 	}
 
-	if err := tx.Where("user_id = ?", order.UserID).Delete(&domain.CartItem{}).Error; err != nil {
+	if err := tx.Where("user_id = ?", order.UserID).Delete(&CartItem{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -236,7 +265,7 @@ func (r *orderRepo) CancelOrder(ctx context.Context, orderID, userID uint) error
 		}
 
 		for _, item := range dbOrder.Items {
-			if err := tx.Model(&domain.Product{}).
+			if err := tx.Model(&OrderProduct{}).
 				Where("id = ?", item.ProductID).
 				Update("stock", gorm.Expr("stock + ?", item.Quantity)).Error; err != nil {
 				return err
@@ -256,7 +285,7 @@ func (r *orderRepo) CreateSingleOrder(ctx context.Context, order *domain.Order) 
 
 		// Stock update
 		for _, item := range dbOrder.Items {
-			if err := tx.Model(&domain.Product{}).
+			if err := tx.Model(&OrderProduct{}).
 				Where("id = ?", item.ProductID).
 				Update("stock", gorm.Expr("stock - ?", item.Quantity)).Error; err != nil {
 				return err

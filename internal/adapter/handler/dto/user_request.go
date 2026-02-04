@@ -38,3 +38,16 @@ type UpdateUser struct {
 type UpdateStatus struct {
 	Status string `json:"status" validate:"required"`
 }
+
+type Product struct {
+	ID          uint       `json:"id"`
+    Images      []string   `json:"images"`
+	Name        string     `json:"name" validate:"required"`
+	Price       int        `json:"price" validate:"required"`
+	Description string     `json:"desc" validate:"required"`
+	Category    string     `json:"category" validate:"required"`
+	Offer       string     `json:"offer,omitempty"`
+	OfferPrice  int        `json:"offerprice,omitempty"`
+	Production  string     `json:"production,omitempty"`
+	Stock       uint       `json:"stock"`
+}
