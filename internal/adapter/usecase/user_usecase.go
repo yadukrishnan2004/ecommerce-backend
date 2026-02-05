@@ -34,6 +34,7 @@ type UserUseCase interface {
 	CancelOrder(ctx context.Context, orderID, userID uint) error
 	GetAllProducts(ctx context.Context) ([]domain.Product, error)
 	SearchProducts(ctx context.Context, query string) ([]domain.Product, error)
+	FilterProducts(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error)
 }
 
 type userUseCase struct {
@@ -291,6 +292,10 @@ func (s *userUseCase) SearchProducts(ctx context.Context, query string) ([]domai
         return []domain.Product{}, nil
     }
     return s.productrepo.Search(ctx, cleanQuery)
+}
+
+func (s *userUseCase) FilterProducts(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error) {
+    return s.productrepo.GetProducts(ctx, filter)
 }
 
 

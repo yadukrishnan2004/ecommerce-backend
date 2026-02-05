@@ -24,6 +24,7 @@ func SetUpAdminRouter(api fiber.Router,adminH *handler.AdminHandler){
 		routes.Put("/orders/:id", adminH.UpdateStatus)	
 		routes.Get("/search", adminH.SearchProducts)
 		routes.Get("/users/search", adminH.SearchUsers)
+		routes.Get("/filter",adminH.FilterProducts)
 	}
 	
 }

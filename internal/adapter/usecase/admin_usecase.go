@@ -39,6 +39,7 @@ type AdminUseCase interface {
 	UpdateOrderStatus(ctx context.Context, orderID uint, status string) error
 	SearchProducts(ctx context.Context, query string) ([]domain.Product, error)
 	SearchUsers(ctx context.Context, query string) ([]domain.User, error)
+	FilterProducts(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error)
 }
 
 type adminUseCase struct {
@@ -229,4 +230,10 @@ func (s *adminUseCase) SearchProducts(ctx context.Context, query string) ([]doma
 
 func (s *adminUseCase) SearchUsers(ctx context.Context, query string) ([]domain.User, error) {
     return s.repo.SearchUsers(ctx, query)
+}
+
+
+
+func (s *adminUseCase) FilterProducts(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error) {
+    return s.productrepo.GetProducts(ctx, filter)
 }

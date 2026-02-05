@@ -144,15 +144,68 @@ func (r *productRepo) GetByProduction(ctx context.Context, status string) ([]dom
 	return products, nil
 }
 
-
-
 func (r *productRepo) Search(ctx context.Context, query string) ([]domain.Product, error) {
-    var products []domain.Product
+	var dbProducts []Product
 
-    searchPattern := "%" + query + "%"
+	searchPattern := "%" + query + "%"
 
-    err := r.db.WithContext(ctx).
-        Where("name ILIKE ?", searchPattern).Find(&products).Error
+	err := r.db.WithContext(ctx).
+		Where("name ILIKE ?", searchPattern).Find(&dbProducts).Error
 
-    return products, err
+	if err != nil {
+		return nil, err
+	}
+
+	var products []domain.Product
+	for _, p := range dbProducts {
+		products = append(products, *p.ToDomain())
+	}
+
+	return products, err
+}
+
+func (r *productRepo) GetProducts(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error) {
+	var dbProducts []Product
+
+	query := r.db.WithContext(ctx).Model(&Product{})
+
+	if filter.Search != "" {
+		search := "%" + filter.Search + "%"
+		query = query.Where("name ILIKE ? OR description ILIKE ?", search, search)
+	}
+
+	if filter.Category != "" {
+		query = query.Where("category ILIKE ?", filter.Category)
+	}
+
+	if filter.MinPrice > 0 {
+		query = query.Where("price >= ?", filter.MinPrice)
+	}
+
+	if filter.MaxPrice > 0 {
+		query = query.Where("price <= ?", filter.MaxPrice)
+	}
+
+	switch filter.Sort {
+	case "price_asc":
+		query = query.Order("price asc")
+	case "price_desc":
+		query = query.Order("price desc")
+	case "newest":
+		query = query.Order("created_at desc")
+	default:
+		query = query.Order("id desc")
+	}
+
+	err := query.Find(&dbProducts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var products []domain.Product
+	for _, p := range dbProducts {
+		products = append(products, *p.ToDomain())
+	}
+
+	return products, nil
 }

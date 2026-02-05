@@ -278,3 +278,22 @@ func (h *AdminHandler) SearchUsers(c *fiber.Ctx) error {
 
     return response.Response(c,http.StatusOK,"list of users found",users,nil)
 }
+
+
+
+func (h *AdminHandler) FilterProducts(c *fiber.Ctx) error {
+    filter := domain.ProductFilter{
+        Search:   c.Query("search"),
+        MinPrice: c.QueryFloat("min_price", 0),
+        MaxPrice: c.QueryFloat("max_price", 0),
+        Sort:     c.Query("sort"),
+        Category: c.Query("category"), 
+    }
+
+    products, err := h.svc.FilterProducts(c.Context(), filter)
+    if err != nil {
+        return response.Response(c,http.StatusInternalServerError,"Failed to fetch products",nil,nil)
+    }
+
+    return response.Response(c,http.StatusOK,"success",products,nil)
+}
