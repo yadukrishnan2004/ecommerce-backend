@@ -17,6 +17,7 @@ func main() {
 
 	//admin seeding
 	seeding.AdminSeeding(db, cfg)
+	seeding.SeedProducts(db)
 
 	// 3. Initialize Fiber App
 	app := fiber.New(fiber.Config{

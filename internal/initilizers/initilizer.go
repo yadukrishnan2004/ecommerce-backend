@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
 	"github.com/gofiber/fiber/v2"
 	auth "github.com/yadukrishnan2004/ecommerce-backend/internal/Auth"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler"

@@ -79,7 +79,7 @@ func (s *orderService) BuyNow(ctx context.Context, userID, productID uint, quant
         return errors.New("insufficient stock")
     }
 
-    totalAmount := product.Price * quantity
+    totalAmount := float64(product.Price) * float64(quantity)
 
     orderItem := domain.OrderItem{
         ProductID: productID,

@@ -17,7 +17,7 @@ type Product struct {
 	gorm.Model
 	Images      pq.StringArray `json:"images" gorm:"type:text[]"`
 	Name        string         `json:"name" validate:"required"`
-	Price       int            `json:"price" validate:"required"`
+	Price       float64        `json:"price" validate:"required"`
 	Description string         `json:"desc" validate:"required"`
 	Category    string         `json:"category" validate:"required"`
 	Offer       string         `json:"offer,omitempty"`
@@ -39,7 +39,7 @@ func (p *Product) ToDomain() *domain.Product {
 		}(),
 		Images:      []string(p.Images),
 		Name:        p.Name,
-		Price:       p.Price,
+		Price:       float64(p.Price),
 		Description: p.Description,
 		Category:    p.Category,
 		Offer:       p.Offer,
@@ -63,7 +63,7 @@ func fromDomainProduct(p *domain.Product) *Product {
 		},
 		Images:      pq.StringArray(p.Images),
 		Name:        p.Name,
-		Price:       p.Price,
+		Price:       float64(p.Price),
 		Description: p.Description,
 		Category:    p.Category,
 		Offer:       p.Offer,

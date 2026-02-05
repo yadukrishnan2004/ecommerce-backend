@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
 )
@@ -36,6 +37,8 @@ type AdminUseCase interface {
 	UpdateStatus(ctx context.Context, id uint, status string) error
 	GetAllOrders(ctx context.Context) ([]domain.Order, error)
 	UpdateOrderStatus(ctx context.Context, orderID uint, status string) error
+	SearchProducts(ctx context.Context, query string) ([]domain.Product, error)
+	SearchUsers(ctx context.Context, query string) ([]domain.User, error)
 }
 
 type adminUseCase struct {
@@ -211,4 +214,19 @@ func (s *adminUseCase) UpdateOrderStatus(ctx context.Context, orderID uint, stat
 	}
 
 	return s.oredersRepo.UpdateStatus(ctx, orderID, status)
+}
+
+
+func (s *adminUseCase) SearchProducts(ctx context.Context, query string) ([]domain.Product, error) {
+    cleanQuery := strings.TrimSpace(query)
+    
+    if cleanQuery == "" {
+        return []domain.Product{}, nil
+    }
+    return s.productrepo.Search(ctx, cleanQuery)
+}
+
+
+func (s *adminUseCase) SearchUsers(ctx context.Context, query string) ([]domain.User, error) {
+    return s.repo.SearchUsers(ctx, query)
 }

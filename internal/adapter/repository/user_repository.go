@@ -14,11 +14,11 @@ type userRepo struct {
 // User represents the database model
 type User struct {
 	gorm.Model
-	Name      string
-	Email     string
-	Password  string
-	Role      string
-	Otp       string
+	Name      string `json:"name"`
+	Email     string `json:"email" gorm:"unique"`
+	Password  string `json:"-"`
+	Role      string `json:"role" gorm:"default:'user'"`
+	Otp       string 
 	IsActive  bool
 	IsBlocked bool
 	OtpExpire int64
@@ -117,4 +117,18 @@ func (r *userRepo) Delete(ctx context.Context, userID uint) (error) {
 	return r.db.WithContext(ctx).Delete(&domain.User{}, userID).Error
 }
 
+
+
+func (r *userRepo) SearchUsers(ctx context.Context, query string) ([]domain.User, error) {
+    var users []domain.User
+    
+    searchPattern := "%" + query + "%"
+
+    err := r.db.WithContext(ctx).
+        Where("name ILIKE ? OR email ILIKE ?", searchPattern, searchPattern).
+        Limit(20).
+        Find(&users).Error
+
+    return users, err
+}
 

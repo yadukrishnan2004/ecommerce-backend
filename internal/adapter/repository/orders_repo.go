@@ -40,7 +40,7 @@ func (p *OrderProduct) ToDomain() *domain.Product {
 		}(),
 		Images:      []string(p.Images),
 		Name:        p.Name,
-		Price:       p.Price,
+		Price:       float64(p.Price),
 		Description: p.Description,
 		Category:    p.Category,
 		Offer:       p.Offer,

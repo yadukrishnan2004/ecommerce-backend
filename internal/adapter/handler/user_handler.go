@@ -364,3 +364,6 @@ func (h *UserHandler) SearchProducts(c *fiber.Ctx) error {
 
 	return response.Response(c, http.StatusOK, "search result", products, nil)
 }
+
+
+

@@ -14,7 +14,7 @@ type Product struct {
 	DeletedAt   *time.Time `json:"deleted_at,omitempty"`
     Images      []string   `json:"images"`
 	Name        string     `json:"name" validate:"required"`
-	Price       int        `json:"price" validate:"required"`
+	Price       float64        `json:"price" validate:"required"`
 	Description string     `json:"desc" validate:"required"`
 	Category    string     `json:"category" validate:"required"`
 	Offer       string     `json:"offer,omitempty"`

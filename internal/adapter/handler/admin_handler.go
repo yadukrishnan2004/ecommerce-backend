@@ -244,3 +244,37 @@ func (h *AdminHandler) UpdateOrdersStatus(c *fiber.Ctx) error {
 
 	return response.Response(c, http.StatusOK, "order status updated", nil, nil)
 }
+
+
+
+
+func (h *AdminHandler) SearchProducts(c *fiber.Ctx) error {
+	query:=c.Query("q")
+
+	if query == "" {
+		return response.Response(c,http.StatusBadRequest,"Search query is required",nil,nil)
+	}
+
+	products, err := h.svc.SearchProducts(c.Context(), query)
+    if err != nil {
+        return response.Response(c,http.StatusInternalServerError,"Search failed",products,err)
+    }
+
+	return response.Response(c, http.StatusOK, "search result", products, nil)
+}
+
+
+
+func (h *AdminHandler) SearchUsers(c *fiber.Ctx) error {
+    query := c.Query("q")
+    if query == "" {
+        return response.Response(c,http.StatusBadRequest,"Search query is required",nil,nil)
+    }
+
+    users, err := h.svc.SearchUsers(c.Context(), query)
+    if err != nil {
+        return response.Response(c,http.StatusInternalServerError,"Search query is required",nil,err.Error())
+    }
+
+    return response.Response(c,http.StatusOK,"list of users found",users,nil)
+}

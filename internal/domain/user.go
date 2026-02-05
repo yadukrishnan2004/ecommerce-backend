@@ -13,7 +13,7 @@ type User struct {
 	Name      string     `json:"name"`
 	Email     string     `json:"email"`
 	Password  string     `json:"-"`
-	Role      string     `json:"role" `
+	Role      string     `json:"role" gorm:"default:'user'"`
 	Otp       string     `json:"-"`
 	IsActive  bool       `json:"is_active"`
 	IsBlocked bool       `json:"is_blocked"`
@@ -32,6 +32,7 @@ type UserRepository interface {
 	GetByID(ctx context.Context, userID uint) (*User, error)
 	Update(ctx context.Context, user *User) error
 	Delete(ctx context.Context,userId uint) error
+	SearchUsers(ctx context.Context, query string) ([]User, error)
 }
 
 
