@@ -2,10 +2,9 @@ package handler
 
 import (
 	"net/http"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler/dto"
-	"github.com/yadukrishnan2004/ecommerce-backend/internal/usecase"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/usecase"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/utils/response"
 )
 

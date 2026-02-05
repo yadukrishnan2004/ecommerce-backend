@@ -8,20 +8,26 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler/dto"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/usecase"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/pkg"
-	"github.com/yadukrishnan2004/ecommerce-backend/internal/usecase"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/utils/response"
 )
+
 
 type UserHandler struct {
 	svc usecase.UserUseCase
 }
+
+
 
 func NewUserHandler(svc usecase.UserUseCase) *UserHandler {
 	return &UserHandler{
 		svc: svc,
 	}
 }
+
+
+
 
 func (h *UserHandler) SignUp(c *fiber.Ctx) error {
 	var request dto.CreateUserRequest
@@ -74,6 +80,10 @@ func (h *UserHandler) SignUp(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, fmt.Sprintf("otp is send to your %s", request.Email), nil, nil)
 }
 
+
+
+
+
 func (h *UserHandler) OtpVerify(c *fiber.Ctx) error {
 	email, ok := c.Locals("email").(string)
 	if !ok {
@@ -102,6 +112,10 @@ func (h *UserHandler) OtpVerify(c *fiber.Ctx) error {
 	c.Cookie(&cookie)
 	return response.Response(c, http.StatusOK, "user created", nil, nil)
 }
+
+
+
+
 
 func (h *UserHandler) SignIn(c *fiber.Ctx) error {
 	var request dto.SignInRequest
@@ -137,6 +151,10 @@ func (h *UserHandler) SignIn(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, "login successful", request, nil)
 }
 
+
+
+
+
 func (h *UserHandler) Logout(c *fiber.Ctx) error {
 	cookie := fiber.Cookie{
 		Name:     "jwt",
@@ -149,6 +167,9 @@ func (h *UserHandler) Logout(c *fiber.Ctx) error {
 
 	return response.Response(c, http.StatusOK, "logged out successfully", nil, nil)
 }
+
+
+
 
 func (h *UserHandler) Forgotpassword(c *fiber.Ctx) error {
 	var getemail dto.Getemail
@@ -179,6 +200,9 @@ func (h *UserHandler) Forgotpassword(c *fiber.Ctx) error {
 	c.Cookie(&cookie)
 	return response.Response(c, http.StatusOK, fmt.Sprintf("otp is send to your %s", getemail.Email), nil, nil)
 }
+
+
+
 
 func (h *UserHandler) Resetpassword(c *fiber.Ctx) error {
 	email, ok := c.Locals("email").(string)
@@ -214,6 +238,9 @@ func (h *UserHandler) Resetpassword(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, "user updated", nil, nil)
 }
 
+
+
+
 func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 	user, ok := c.Locals("userid").(float64)
 	if !ok {
@@ -244,6 +271,9 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, "user updated", nil, nil)
 }
 
+
+
+
 func (h *UserHandler) GetProfile(c *fiber.Ctx) error {
 	userIDFloat, ok := c.Locals("userid").(float64)
 	if !ok {
@@ -256,6 +286,9 @@ func (h *UserHandler) GetProfile(c *fiber.Ctx) error {
 	}
 	return response.Response(c, http.StatusOK, user.Role, user, nil)
 }
+
+
+
 
 func (h *UserHandler) GetOrder(c *fiber.Ctx) error {
     userIDFloat, ok := c.Locals("userid").(float64)
@@ -278,6 +311,8 @@ func (h *UserHandler) GetOrder(c *fiber.Ctx) error {
 
     return response.Response(c,http.StatusOK,"get order",order,nil)
 }
+
+
 
 func (h *UserHandler) 	CancelOrder(c *fiber.Ctx) error {
 
@@ -302,10 +337,30 @@ func (h *UserHandler) 	CancelOrder(c *fiber.Ctx) error {
     return response.Response(c,http.StatusOK,"Order cancelled successfully",nil,nil)
 }
 
+
+
+
 func (h *UserHandler) GetAll(c *fiber.Ctx) error {
 	product, err := h.svc.GetAllProducts(c.Context())
 	if err != nil {
 		return response.Response(c, http.StatusInternalServerError, "faile to fetch the products", nil, err.Error())
 	}
 	return response.Response(c, http.StatusOK, "all users list", product, nil)
+}
+
+
+
+func (h *UserHandler) SearchProducts(c *fiber.Ctx) error {
+	query:=c.Query("q")
+
+	if query == "" {
+		return response.Response(c,http.StatusBadRequest,"Search query is required",nil,nil)
+	}
+
+	products, err := h.svc.SearchProducts(c.Context(), query)
+    if err != nil {
+        return response.Response(c,http.StatusInternalServerError,"Search failed",products,err)
+    }
+
+	return response.Response(c, http.StatusOK, "search result", products, nil)
 }

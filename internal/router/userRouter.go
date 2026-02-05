@@ -18,6 +18,7 @@ func SetUpUserRouter(api fiber.Router, userH *handler.UserHandler) {
         userRoutes.Post("/login", userH.SignIn)
         userRoutes.Post("/forgot-password", userH.Forgotpassword)
         userRoutes.Get("/allproducts",userH.GetAll)
+        userRoutes.Get("/search", userH.SearchProducts)
     }
 
     // SPECIAL ROUTES (Reset Token Required)

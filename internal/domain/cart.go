@@ -2,8 +2,8 @@ package domain
 
 import (
 	"context"
-
 )
+
 
 type CartItem struct {
     ID        uint    `json:"id" gorm:"primaryKey"`
@@ -12,6 +12,7 @@ type CartItem struct {
     Product   Product `json:"product" gorm:"foreignKey:ProductID"` 
     Quantity  uint     `json:"quantity"`
 }
+
 
 type CartRepository interface {
     AddItem(ctx context.Context, item *CartItem) error

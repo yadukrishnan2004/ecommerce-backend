@@ -20,9 +20,11 @@ type User struct {
 	OtpExpire int64      `json:"otp_expire"`
 }
 
+
 type NotificationClient interface {
 	SendOtp(toEmail string, code string) error
 }
+
 
 type UserRepository interface {
 	Create(ctx context.Context, user *User) error

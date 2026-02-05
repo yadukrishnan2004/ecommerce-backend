@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/yadukrishnan2004/ecommerce-backend/helper"
@@ -32,6 +33,7 @@ type UserUseCase interface {
 	GetOrderDetail(ctx context.Context, orderID, userID uint) (*domain.Order, error)
 	CancelOrder(ctx context.Context, orderID, userID uint) error
 	GetAllProducts(ctx context.Context) ([]domain.Product, error)
+	SearchProducts(ctx context.Context, query string) ([]domain.Product, error)
 }
 
 type userUseCase struct {
@@ -278,6 +280,17 @@ func (s *userUseCase) GetAllProducts(
 		return nil, err
 	}
 	return product, nil
+}
+
+
+
+func (s *userUseCase) SearchProducts(ctx context.Context, query string) ([]domain.Product, error) {
+    cleanQuery := strings.TrimSpace(query)
+    
+    if cleanQuery == "" {
+        return []domain.Product{}, nil
+    }
+    return s.productrepo.Search(ctx, cleanQuery)
 }
 
 

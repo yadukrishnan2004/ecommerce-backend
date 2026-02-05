@@ -143,3 +143,16 @@ func (r *productRepo) GetByProduction(ctx context.Context, status string) ([]dom
 
 	return products, nil
 }
+
+
+
+func (r *productRepo) Search(ctx context.Context, query string) ([]domain.Product, error) {
+    var products []domain.Product
+
+    searchPattern := "%" + query + "%"
+
+    err := r.db.WithContext(ctx).
+        Where("name ILIKE ?", searchPattern).Find(&products).Error
+
+    return products, err
+}

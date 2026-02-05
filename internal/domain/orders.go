@@ -3,7 +3,6 @@ package domain
 import (
 	"context"
 	"time"
-
 	"gorm.io/gorm"
 )
 
@@ -17,6 +16,7 @@ type Order struct {
 	Items       []OrderItem `json:"items" gorm:"foreignKey:OrderID"`
 	User        User        `json:"user" gorm:"foreignKey:UserID"`
 }
+
 
 type OrderItem struct {
 	gorm.Model

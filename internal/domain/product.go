@@ -3,9 +3,11 @@ package domain
 import (
 	"context"
 	"time"
+	"gorm.io/gorm"
 )
 
 type Product struct {
+	gorm.Model
 	ID          uint       `json:"id"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
@@ -21,6 +23,7 @@ type Product struct {
 	Stock       uint       `json:"stock"`
 }
 
+
 type ProductRepository interface {
 	Create(ctx context.Context, product *Product) error
 	GetAll(ctx context.Context) ([]Product, error)
@@ -28,4 +31,5 @@ type ProductRepository interface {
 	Update(ctx context.Context, product *Product) error
 	Delete(ctx context.Context, id uint) error
 	GetByProduction(ctx context.Context, name string) ([]Product, error)
+	Search(ctx context.Context, query string) ([]Product, error)
 }
