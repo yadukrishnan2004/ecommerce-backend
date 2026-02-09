@@ -10,11 +10,11 @@ import (
 
 type CartItem struct {
 	gorm.Model
-	ID        uint    `json:"id" gorm:"primaryKey"`
-	UserID    uint    `json:"user_id"`
+	UserID    uint    `json:"userid"`
 	ProductID uint    `json:"product_id"`
-	Product   Product `json:"product" gorm:"foreignKey:ProductID"`
 	Quantity  int     `json:"quantity"`
+	User      User    `json:"user" gorm:"foreignKey:UserID;references:ID"`
+	Product   Product `json:"product" gorm:"foreignKey:ProductID;references:ID"`
 }
 
 func (c *CartItem) ToDomain() *domain.CartItem {

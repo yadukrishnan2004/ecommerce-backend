@@ -18,10 +18,10 @@ type User struct {
 	Email     string `json:"email" gorm:"unique"`
 	Password  string `json:"-"`
 	Role      string `json:"role" gorm:"default:'user'"`
-	Otp       string 
-	IsActive  bool
-	IsBlocked bool
-	OtpExpire int64
+	Otp       string `json:"otp"`
+	IsActive  bool	 `json:"is_active"`
+	IsBlocked bool   `json:"is_block"`
+	OtpExpire int64  
 }
 
 

@@ -37,7 +37,9 @@ func InitializeDependencies(
 	cartRepo := repository.NewCartRepo(db)
 	wishRepo := repository.NewWishlistRepo(db)
 	orderRepo := repository.NewOrderRepo(db)
+   	addressRepo:= repository.NewAddressRepo(db)
 	jwtService := auth.NewJwtService(cfg.JWT)
+
 
 	// Use Cases
 	userUseCase := usecase.NewUserUseCase(userRepo, notifier, *jwtService, orderRepo,productRepo)
@@ -45,6 +47,8 @@ func InitializeDependencies(
 	cartService := usecase.NewCartService(cartRepo, productRepo)
 	wishService := usecase.NewWishlistService(wishRepo, productRepo)
 	orderService := usecase.NewOrderService(orderRepo, cartRepo, productRepo)
+	addressUsecase:=usecase.NewAddressUsecase(addressRepo)
+
 
 	// Handlers
 	userHandler := handler.NewUserHandler(userUseCase)
@@ -52,9 +56,10 @@ func InitializeDependencies(
 	cartHandler := handler.NewCartHandler(cartService)
 	wishHandler := handler.NewWishlistHandler(wishService)
 	orderHandler := handler.NewOrderHandler(orderService)
+	addressHandler:=handler.NewAddressHandler(addressUsecase)
 
 	// Routes
-	router.SetUpRouter(app, userHandler, adminHandler, cartHandler, wishHandler, orderHandler)
+	router.SetUpRouter(app, userHandler, adminHandler, cartHandler, wishHandler, orderHandler,addressHandler)
 }
 
 func StartServer(app *fiber.App, cfg *config.Config) {
