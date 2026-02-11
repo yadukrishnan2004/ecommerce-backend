@@ -7,14 +7,12 @@ import (
 )
 
 func SetupWishlistRoutes(api fiber.Router, wishH *handler.WishlistHandler) {
-	wish:= api.Group("/wishlist")
-	routes:= wish.Group("/")
-	routes.Use(middleware.UserMiddleware)
+	wish := api.Group("/wishlist")
+	wish.Use(middleware.UserMiddleware)
 	{
-		routes.Post("/add/:id",wishH.AddToWishlist)
-		routes.Delete("/remove/:id",wishH.RemoveFromWishlist)
-		routes.Delete("/", wishH.ClearWishlist)
-		routes.Get("/",wishH.GetWishlist)
+		wish.Post("/:id", wishH.AddToWishlist)        // Changed from /add/:id - POST /wishlist/:id implies adding
+		wish.Delete("/:id", wishH.RemoveFromWishlist) // Changed from /remove/:id - DELETE /wishlist/:id implies removing
+		wish.Delete("/", wishH.ClearWishlist)
+		wish.Get("/", wishH.GetWishlist)
 	}
-
 }

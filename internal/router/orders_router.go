@@ -8,11 +8,10 @@ import (
 
 func SetupOrderRoutes(api fiber.Router, orderH *handler.OrderHandler) {
 	order := api.Group("/orders")
-	routes:=order.Group("/")
-	routes.Use(middleware.UserMiddleware)
+	order.Use(middleware.UserMiddleware)
 	{
-	routes.Post("/", orderH.PlaceOrder)
-	routes.Get("/", orderH.GetOrderHistory)
-	routes.Post("/buy-now", orderH.BuyNow)
+		order.Post("/", orderH.PlaceOrder)
+		order.Get("/", orderH.GetOrderHistory)
+		order.Post("/buy-now", orderH.BuyNow)
 	}
 }

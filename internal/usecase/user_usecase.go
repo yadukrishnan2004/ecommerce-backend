@@ -29,7 +29,7 @@ type UserProfileOutput struct {
 
 type UserUseCase interface {
 	SignUp(ctx context.Context, name, email, password string) (string, error)
-	VerifyOtp(ctx context.Context, email, code string) error
+	VerifyOtp(ctx context.Context, email, code string) (string, error)
 	SignIn(ctx context.Context, email, password string) (string, error)
 	ForgotPassword(ctx context.Context, email string) (string, error)
 	ResetPassword(ctx context.Context, email, code, newPassword string) error
@@ -66,35 +66,7 @@ func (s *userUseCase) SignUp(ctx context.Context, name, email, password string) 
 	user, err := s.repo.GetByEmail(ctx, email)
 
 	if err == nil && user.ID != 0 {
-
-		if user.IsActive {
-			return "", errors.New("user already exists")
-		}
-		hashedPass, err := helper.Hash(password)
-		if err != nil {
-			return "", err
-		}
-
-		otp := helper.GenerateOtp()
-
-		user.Role = "user"
-		user.Name = name
-		user.Password = hashedPass
-		user.Otp = otp
-		user.OtpExpire = time.Now().Add(10 * time.Minute).Unix()
-
-		if err := s.repo.Update(ctx, user); err != nil {
-			return "", err
-		}
-
-		token, erro := s.jwt.GenerateAuthToken(user.Role, user.Email, 10*60)
-		if erro != nil {
-			return "", errors.New("forgot pass is not generated")
-		}
-
-		s.otp.SendOtp(user.Email, user.Otp)
-
-		return token, nil
+		return "", errors.New("user already exists")
 	}
 
 	hashedPass, err := helper.Hash(password)
@@ -104,53 +76,68 @@ func (s *userUseCase) SignUp(ctx context.Context, name, email, password string) 
 
 	otp := helper.GenerateOtp()
 
-	newUser := &domain.User{
+	signupRequest := &domain.SignupRequest{
 		Name:      name,
 		Email:     email,
 		Password:  hashedPass,
-		IsActive:  true,
+		Role:      "user",
 		Otp:       otp,
 		OtpExpire: time.Now().Add(10 * time.Minute).Unix(),
+	}
+
+	if err := s.repo.SaveSignup(ctx, signupRequest); err != nil {
+		return "", err
+	}
+
+	if err := s.otp.SendOtp(email, otp); err != nil {
+		return "", errors.New("failed to send otp")
+	}
+
+	return "OTP sent successfully", nil
+}
+
+func (s *userUseCase) VerifyOtp(ctx context.Context, email, code string) (string, error) {
+	signup, err := s.repo.GetSignup(ctx, email)
+	if err != nil {
+		return "", errors.New("invalid request or user not found")
+	}
+
+	if signup.Otp != code {
+		return "", errors.New("invalid code")
+	}
+	if time.Now().Unix() > signup.OtpExpire {
+		return "", errors.New("code expired")
+	}
+
+	// Create User
+	newUser := &domain.User{
+		Name:     signup.Name,
+		Email:    signup.Email,
+		Password: signup.Password,
+		Role:     signup.Role,
+		IsActive: true,
 	}
 
 	if err := s.repo.Create(ctx, newUser); err != nil {
 		return "", err
 	}
 
-	token, erro := s.jwt.GenerateToken(newUser.ID, 10*60, newUser.Role)
-	if erro != nil {
-		return "", errors.New("forgot pass is not generated")
+	// Delete Signup Request
+	_ = s.repo.DeleteSignup(ctx, email)
+
+	// Generate Token
+	token, err := s.jwt.GenerateToken(newUser.ID, s.jwt.AccessTTL, newUser.Role)
+	if err != nil {
+		return "", errors.New("failed to generate token")
 	}
-	s.otp.SendOtp(newUser.Email, newUser.Otp)
 
 	return token, nil
-}
-
-func (s *userUseCase) VerifyOtp(ctx context.Context, email, code string) error {
-	user, err := s.repo.GetByEmail(ctx, email)
-	if err != nil {
-		return errors.New("user not found")
-	}
-
-	if user.IsActive {
-		return errors.New("user already active")
-	}
-	if user.Otp != code {
-		return errors.New("invalid code")
-	}
-	if time.Now().Unix() > user.OtpExpire {
-		return errors.New("code expired")
-	}
-
-	user.IsActive = true
-	user.Otp = ""
-	return s.repo.Update(ctx, user)
 }
 
 func (s *userUseCase) SignIn(ctx context.Context, email, password string) (string, error) {
 	user, err := s.repo.GetByEmail(ctx, email)
 
-	fmt.Println("user",user)
+	fmt.Println("user", user)
 	if err != nil {
 		return "", errors.New("invalid email or password")
 	}
@@ -245,10 +232,10 @@ func (s *userUseCase) GetProfile(ctx context.Context, userID uint) (*UserProfile
 }
 
 func (s *userUseCase) GetOrderDetail(ctx context.Context, orderID, userID uint) ([]domain.Order, error) {
-	return s.orders.GetOrdersByUserIDAndOrderID(ctx,userID,orderID)
+	return s.orders.GetOrdersByUserIDAndOrderID(ctx, userID, orderID)
 }
 func (s *userUseCase) GetOrderItemDetails(ctx context.Context, orderID uint) ([]domain.OrderItem, error) {
-	return s.orders.GetOrdersByOrderID(ctx,orderID)
+	return s.orders.GetOrdersByOrderID(ctx, orderID)
 }
 
 func (s *userUseCase) CancelOrder(ctx context.Context, orderID, userID uint) error {

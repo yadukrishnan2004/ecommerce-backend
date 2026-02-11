@@ -44,7 +44,7 @@ func (u *User) ToDomain() *domain.User {
 		IsActive:  u.IsActive,
 		IsBlocked: u.IsBlocked,
 		OtpExpire: u.OtpExpire,
-		}
+	}
 }
 
 // FromDomain converts domain entity to database model
@@ -114,11 +114,11 @@ func (r *userRepo) GetByID(ctx context.Context, userID uint) (*domain.User, erro
 }
 
 func (r *userRepo) Delete(ctx context.Context, userID uint) error {
-	return r.db.WithContext(ctx).Delete(&domain.User{}, userID).Error
+	return r.db.WithContext(ctx).Delete(&User{}, userID).Error
 }
 
 func (r *userRepo) SearchUsers(ctx context.Context, query string) ([]domain.User, error) {
-	var users []domain.User
+	var users []User
 
 	searchPattern := "%" + query + "%"
 
@@ -127,5 +127,77 @@ func (r *userRepo) SearchUsers(ctx context.Context, query string) ([]domain.User
 		Limit(20).
 		Find(&users).Error
 
-	return users, err
+	if err != nil {
+		return nil, err
+	}
+
+	var domainUsers []domain.User
+	for _, u := range users {
+		domainUsers = append(domainUsers, *u.ToDomain())
+	}
+
+	return domainUsers, nil
+}
+
+// SignupRequest Local GORM model
+type SignupRequest struct {
+	ID        uint   `gorm:"primaryKey"`
+	Name      string `gorm:"not null"`
+	Email     string `gorm:"unique;not null"`
+	Password  string `gorm:"not null"`
+	Role      string `gorm:"default:'user'"`
+	Otp       string `gorm:"not null"`
+	OtpExpire int64  `gorm:"not null"`
+}
+
+func (s *SignupRequest) ToDomain() *domain.SignupRequest {
+	return &domain.SignupRequest{
+		ID:        s.ID,
+		Name:      s.Name,
+		Email:     s.Email,
+		Password:  s.Password,
+		Role:      s.Role,
+		Otp:       s.Otp,
+		OtpExpire: s.OtpExpire,
+	}
+}
+
+func FromDomainSignup(s *domain.SignupRequest) *SignupRequest {
+	return &SignupRequest{
+		Name:      s.Name,
+		Email:     s.Email,
+		Password:  s.Password,
+		Role:      s.Role,
+		Otp:       s.Otp,
+		OtpExpire: s.OtpExpire,
+	}
+}
+
+func (r *userRepo) SaveSignup(ctx context.Context, signup *domain.SignupRequest) error {
+	var existing SignupRequest
+	err := r.db.WithContext(ctx).Where("email = ?", signup.Email).First(&existing).Error
+	if err == nil {
+		// Update existing
+		existing.Name = signup.Name
+		existing.Password = signup.Password
+		existing.Otp = signup.Otp
+		existing.OtpExpire = signup.OtpExpire
+		existing.Role = signup.Role
+		return r.db.WithContext(ctx).Save(&existing).Error
+	}
+
+	dbSignup := FromDomainSignup(signup)
+	return r.db.WithContext(ctx).Create(dbSignup).Error
+}
+
+func (r *userRepo) GetSignup(ctx context.Context, email string) (*domain.SignupRequest, error) {
+	var signup SignupRequest
+	if err := r.db.WithContext(ctx).Where("email = ?", email).First(&signup).Error; err != nil {
+		return nil, err
+	}
+	return signup.ToDomain(), nil
+}
+
+func (r *userRepo) DeleteSignup(ctx context.Context, email string) error {
+	return r.db.WithContext(ctx).Where("email = ?", email).Delete(&SignupRequest{}).Error
 }

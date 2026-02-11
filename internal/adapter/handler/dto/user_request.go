@@ -13,7 +13,8 @@ type CreateUserRequest struct {
 }
 
 type Otp struct {
-	Otp string `json:"otp" validate:"required,min=6,max=6"`
+	Email string `json:"email" validate:"required,email"`
+	Otp   string `json:"otp" validate:"required,min=6,max=6"`
 }
 
 type SignInRequest struct {
@@ -40,14 +41,14 @@ type UpdateStatus struct {
 }
 
 type Product struct {
-	ID          uint       `json:"id"`
-    Images      []string   `json:"images"`
-	Name        string     `json:"name" validate:"required"`
-	Price       int        `json:"price" validate:"required"`
-	Description string     `json:"desc" validate:"required"`
-	Category    string     `json:"category" validate:"required"`
-	Offer       string     `json:"offer,omitempty"`
-	OfferPrice  int        `json:"offerprice,omitempty"`
-	Production  string     `json:"production,omitempty"`
-	Stock       uint       `json:"stock"`
+	ID          uint     `json:"id"`
+	Images      []string `json:"images"`
+	Name        string   `json:"name" validate:"required"`
+	Price       int      `json:"price" validate:"required"`
+	Description string   `json:"desc" validate:"required"`
+	Category    string   `json:"category" validate:"required"`
+	Offer       string   `json:"offer,omitempty"`
+	OfferPrice  int      `json:"offerprice,omitempty"`
+	Production  string   `json:"production,omitempty"`
+	Stock       uint     `json:"stock"`
 }

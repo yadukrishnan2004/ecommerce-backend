@@ -99,7 +99,7 @@ func (h *AdminHandler) GetAll(c *fiber.Ctx) error {
 	if err != nil {
 		return response.Response(c, http.StatusInternalServerError, "faile to fetch the products", nil, err.Error())
 	}
-	return response.Response(c, http.StatusOK, "all users list", product, nil)
+	return response.Response(c, http.StatusOK, "all products list", product, nil)
 }
 
 func (h *AdminHandler) GetProduct(c *fiber.Ctx) error {
@@ -232,7 +232,7 @@ func (h *AdminHandler) SearchUsers(c *fiber.Ctx) error {
 
 	users, err := h.svc.SearchUsers(c.Context(), query)
 	if err != nil {
-		return response.Response(c, http.StatusInternalServerError, "Search query is required", nil, err.Error())
+		return response.Response(c, http.StatusInternalServerError, "Search failed", nil, err.Error())
 	}
 
 	return response.Response(c, http.StatusOK, "list of users found", users, nil)

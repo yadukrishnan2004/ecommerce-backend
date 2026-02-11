@@ -49,37 +49,23 @@ func (h *UserHandler) SignUp(c *fiber.Ctx) error {
 		return response.Response(c, http.StatusBadRequest, "password cannot contain spaces", request.Password, "invalid password")
 	}
 
-	if !strings.HasSuffix(request.Email, "@gmail.com") {
-		return response.Response(c, http.StatusBadRequest, "only gmail.com emails allowed", request.Email, "invalid email domain")
-	}
+	// if !strings.HasSuffix(request.Email, "@gmail.com") {
+	// 	return response.Response(c, http.StatusBadRequest, "only gmail.com emails allowed", request.Email, "invalid email domain")
+	// }
 
 	if strings.ContainsAny(request.Password, ".*#!+=-()/<>,:;'@") {
 		return response.Response(c, http.StatusBadRequest, "password contains invalid characters ", ".*#!+=-()/<>,:;'", "invalid password")
 	}
 
-	token, err := h.svc.SignUp(c.Context(), request.Name, request.Email, request.Password)
+	msg, err := h.svc.SignUp(c.Context(), request.Name, request.Email, request.Password)
 	if err != nil {
 		return response.Response(c, http.StatusInternalServerError, "please try again later", nil, err.Error())
 	}
 
-	cookie := fiber.Cookie{
-		Name:     "jwtverify",
-		Value:    token,
-		Expires:  time.Now().Add(10 * time.Minute),
-		HTTPOnly: true,
-		Secure:   false,
-		SameSite: "Lax",
-	}
-	c.Cookie(&cookie)
-
-	return response.Response(c, http.StatusOK, fmt.Sprintf("otp is send to your %s", request.Email), nil, nil)
+	return response.Response(c, http.StatusOK, msg, nil, nil)
 }
 
 func (h *UserHandler) OtpVerify(c *fiber.Ctx) error {
-	email, ok := c.Locals("email").(string)
-	if !ok {
-		return response.Response(c, http.StatusUnauthorized, "unauthorized", email, nil)
-	}
 	var otp dto.Otp
 
 	if err := c.BodyParser(&otp); err != nil {
@@ -89,19 +75,22 @@ func (h *UserHandler) OtpVerify(c *fiber.Ctx) error {
 		return response.Response(c, http.StatusBadRequest, "invalid request", otp, err.Error())
 	}
 
-	if err := h.svc.VerifyOtp(c.Context(), email, otp.Otp); err != nil {
+	token, err := h.svc.VerifyOtp(c.Context(), otp.Email, otp.Otp)
+	if err != nil {
 		return response.Response(c, http.StatusNotAcceptable, "invalid code", otp, err.Error())
 	}
 
 	cookie := fiber.Cookie{
-		Name:     "jwtverify",
-		Value:    "",
-		Expires:  time.Now().Add(-time.Hour),
+		Name:     "jwt",
+		Value:    token,
+		Expires:  time.Now().Add(24 * time.Hour), // 24 hours expiry for login
 		HTTPOnly: true,
+		Secure:   false, // Set to true in production
+		SameSite: "Lax",
 	}
 
 	c.Cookie(&cookie)
-	return response.Response(c, http.StatusOK, "user created", nil, nil)
+	return response.Response(c, http.StatusOK, "Login successful", nil, nil)
 }
 
 func (h *UserHandler) SignIn(c *fiber.Ctx) error {
@@ -323,7 +312,7 @@ func (h *UserHandler) GetAll(c *fiber.Ctx) error {
 	if err != nil {
 		return response.Response(c, http.StatusInternalServerError, "faile to fetch the products", nil, err.Error())
 	}
-	return response.Response(c, http.StatusOK, "all users list", product, nil)
+	return response.Response(c, http.StatusOK, "all products list", product, nil)
 }
 
 func (h *UserHandler) SearchProducts(c *fiber.Ctx) error {

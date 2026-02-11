@@ -9,21 +9,19 @@ import (
 	"gorm.io/gorm"
 )
 
-
-func ConnectPostgres(dsn string) (*gorm.DB){
+func ConnectPostgres(dsn string) *gorm.DB {
 	if dsn == "" {
 		log.Fatal("no dsn found")
-		return  nil
+		return nil
 	}
-	Dsn:=dsn
-	DB,err:=gorm.Open(postgres.Open(Dsn),&gorm.Config{})
-	if err !=nil{
+	Dsn := dsn
+	DB, err := gorm.Open(postgres.Open(Dsn), &gorm.Config{})
+	if err != nil {
 		log.Fatal("faile to connect with the database")
 		return nil
 	}
 	return DB
 }
-
 
 func ConnectDB(cfg *config.Config) *gorm.DB {
 	db := ConnectPostgres(cfg.DSN)
@@ -40,6 +38,7 @@ func ConnectDB(cfg *config.Config) *gorm.DB {
 	// Auto-migrate
 	if err := db.AutoMigrate(
 		&repository.User{},
+		&repository.SignupRequest{},
 		&repository.Product{},
 		&repository.CartItem{},
 		&repository.Wishlist{},

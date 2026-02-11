@@ -36,4 +36,17 @@ type UserRepository interface {
 	Update(ctx context.Context, user *User) error
 	Delete(ctx context.Context, userId uint) error
 	SearchUsers(ctx context.Context, query string) ([]User, error)
+	SaveSignup(ctx context.Context, signup *SignupRequest) error
+	GetSignup(ctx context.Context, email string) (*SignupRequest, error)
+	DeleteSignup(ctx context.Context, email string) error
+}
+
+type SignupRequest struct {
+	ID        uint   `json:"id" gorm:"primaryKey"`
+	Name      string `json:"name"`
+	Email     string `json:"email" gorm:"unique"`
+	Password  string `json:"password"`
+	Role      string `json:"role"`
+	Otp       string `json:"otp"`
+	OtpExpire int64  `json:"otp_expire"`
 }
