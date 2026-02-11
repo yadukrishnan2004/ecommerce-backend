@@ -18,26 +18,22 @@ type User struct {
 	IsActive  bool       `json:"is_active"`
 	IsBlocked bool       `json:"is_blocked"`
 	OtpExpire int64      `json:"otp_expire"`
-}
 
+	Addresses []Address  `json:"addresses" gorm:"foreignKey:UserID"`
+	Cart      []CartItem `json:"cart" gorm:"foreignKey:UserID"`
+	Wishlist  []Wishlist `json:"wishlist" gorm:"foreignKey:UserID"`
+	Orders    []Order    `json:"orders" gorm:"foreignKey:UserID"`
+}
 
 type NotificationClient interface {
 	SendOtp(toEmail string, code string) error
 }
-
 
 type UserRepository interface {
 	Create(ctx context.Context, user *User) error
 	GetByEmail(ctx context.Context, email string) (*User, error)
 	GetByID(ctx context.Context, userID uint) (*User, error)
 	Update(ctx context.Context, user *User) error
-	Delete(ctx context.Context,userId uint) error
+	Delete(ctx context.Context, userId uint) error
 	SearchUsers(ctx context.Context, query string) ([]User, error)
 }
-
-
-
-
-
-
-

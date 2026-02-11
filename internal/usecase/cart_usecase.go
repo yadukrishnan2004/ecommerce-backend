@@ -11,7 +11,7 @@ type CartService interface {
 	AddToCart(ctx context.Context, userID, productID uint, quantity uint) error
 	ClearCart(ctx context.Context, userID uint) error
 	RemoveItem(ctx context.Context, userID, productID uint) error
-	GetCart(ctx context.Context, userID uint) ([]domain.CartItem, error)
+	GetCart(ctx context.Context, userID uint) ([]domain.CartItemView, error)
 	UpdateQuantity(ctx context.Context, userID, productID uint, quantity int) error
 }
 
@@ -55,7 +55,7 @@ func (s *cartService) RemoveItem(ctx context.Context, userID, productID uint) er
     return s.cartRepo.RemoveItem(ctx, userID, productID)
 }
 
-func (s *cartService) GetCart(ctx context.Context, userID uint) ([]domain.CartItem, error) {
+func (s *cartService) GetCart(ctx context.Context, userID uint) ([]domain.CartItemView, error) {
     return s.cartRepo.GetCart(ctx, userID)
 }
 

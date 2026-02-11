@@ -12,10 +12,28 @@ type Wishlist struct {
 }
 
 
+type WishlistItemView struct {
+	WishlistID uint     `json:"wishlist_id"`
+	ProductID  uint     `json:"product_id"`
+
+	Images     []string `json:"images"`
+	Category   string   `json:"category"`
+	Name       string   `json:"name"`
+
+	Price      int64    `json:"price"`      
+	Offer      string   `json:"offer"`
+	OfferPrice int64    `json:"offer_price"` 
+
+	Description string  `json:"description"`
+	Stock       uint    `json:"stock"`
+	Production  string  `json:"production"`
+}
+
+
 
 type WishlistRepository interface {
 	Add(ctx context.Context, item *Wishlist) error
 	Remove(ctx context.Context, userID, productID uint) error
 	DeleteAll(ctx context.Context, userID uint) error
-	GetAll(ctx context.Context, userID uint) ([]Wishlist, error)
+	GetAll(ctx context.Context, userID uint) ([]WishlistItemView, error)
 }

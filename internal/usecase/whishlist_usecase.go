@@ -11,7 +11,7 @@ type WishlistService interface {
 	AddToWishlist(ctx context.Context, userID, productID uint) error
 	RemoveFromWishlist(ctx context.Context, userID, productID uint) error
 	ClearWishlist(ctx context.Context, userID uint) error
-	GetWishlist(ctx context.Context, userID uint) ([] domain.Wishlist, error)
+	GetWishlist(ctx context.Context, userID uint) ([] domain.WishlistItemView, error)
 }
 
 type wishlistService struct {
@@ -49,6 +49,6 @@ func (s *wishlistService) ClearWishlist(ctx context.Context, userID uint) error 
     return s.wishRepo.DeleteAll(ctx, userID)
 }
 
-func (s *wishlistService) GetWishlist(ctx context.Context, userID uint) ([]domain.Wishlist, error) {
+func (s *wishlistService) GetWishlist(ctx context.Context, userID uint) ([]domain.WishlistItemView, error) {
     return s.wishRepo.GetAll(ctx, userID)
 }

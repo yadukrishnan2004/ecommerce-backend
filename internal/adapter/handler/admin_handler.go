@@ -6,28 +6,21 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler/dto"
-	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/usecase"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/pkg"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/usecase"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/utils/response"
 )
-
-
 
 type AdminHandler struct {
 	svc usecase.AdminUseCase
 }
-
-
 
 func NewAdminHandler(Svc usecase.AdminUseCase) *AdminHandler {
 	return &AdminHandler{
 		svc: Svc,
 	}
 }
-
-
-
 
 func (h *AdminHandler) UpdateUser(c *fiber.Ctx) error {
 
@@ -58,9 +51,6 @@ func (h *AdminHandler) UpdateUser(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, "user updated", updateuser, nil)
 }
 
-
-
-
 func (h *AdminHandler) BlockUser(c *fiber.Ctx) error {
 
 	id, err := strconv.Atoi(c.Params("id"))
@@ -74,9 +64,6 @@ func (h *AdminHandler) BlockUser(c *fiber.Ctx) error {
 	}
 	return response.Response(c, http.StatusOK, msg, nil, nil)
 }
-
-
-
 
 func (h *AdminHandler) AddNewProduct(c *fiber.Ctx) error {
 
@@ -98,7 +85,7 @@ func (h *AdminHandler) AddNewProduct(c *fiber.Ctx) error {
 		OfferPrice:  newProduct.OfferPrice,
 		Production:  newProduct.Production,
 		Images:      newProduct.Images,
-		Stock: 		 newProduct.Stock,
+		Stock:       newProduct.Stock,
 	}
 	if err := h.svc.AddNewProduct(c.Context(), &product); err != nil {
 		return response.Response(c, http.StatusInternalServerError, "failed add new product", nil, err.Error())
@@ -107,10 +94,6 @@ func (h *AdminHandler) AddNewProduct(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, "product created", nil, nil)
 }
 
-
-
-
-
 func (h *AdminHandler) GetAll(c *fiber.Ctx) error {
 	product, err := h.svc.GetAllProducts(c.Context())
 	if err != nil {
@@ -118,9 +101,6 @@ func (h *AdminHandler) GetAll(c *fiber.Ctx) error {
 	}
 	return response.Response(c, http.StatusOK, "all users list", product, nil)
 }
-
-
-
 
 func (h *AdminHandler) GetProduct(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
@@ -134,9 +114,6 @@ func (h *AdminHandler) GetProduct(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, "product found", product, nil)
 }
 
-
-
-
 func (h *AdminHandler) DeleteProduct(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
@@ -148,9 +125,6 @@ func (h *AdminHandler) DeleteProduct(c *fiber.Ctx) error {
 	}
 	return response.Response(c, http.StatusOK, "product deleted Successfully", nil, nil)
 }
-
-
-
 
 func (h *AdminHandler) DeleteUser(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
@@ -165,9 +139,6 @@ func (h *AdminHandler) DeleteUser(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, "user Deleted Successfully", nil, nil)
 }
 
-
-
-
 func (h *AdminHandler) Production(c *fiber.Ctx) error {
 	status := c.Params("status")
 	if status == "" {
@@ -181,8 +152,6 @@ func (h *AdminHandler) Production(c *fiber.Ctx) error {
 
 	return response.Response(c, http.StatusOK, "product get successfully", products, nil)
 }
-
-
 
 func (h *AdminHandler) UpdateStatus(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
@@ -202,9 +171,6 @@ func (h *AdminHandler) UpdateStatus(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, "status updated", nil, nil)
 }
 
-
-
-
 func (h *AdminHandler) GetAllOrders(c *fiber.Ctx) error {
 
 	orders, err := h.svc.GetAllOrders(c.Context())
@@ -219,8 +185,6 @@ func (h *AdminHandler) GetAllOrders(c *fiber.Ctx) error {
 
 	return response.Response(c, fiber.StatusOK, "get Order successfully", allorders, nil)
 }
-
-
 
 func (h *AdminHandler) UpdateOrdersStatus(c *fiber.Ctx) error {
 
@@ -245,55 +209,48 @@ func (h *AdminHandler) UpdateOrdersStatus(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, "order status updated", nil, nil)
 }
 
-
-
-
 func (h *AdminHandler) SearchProducts(c *fiber.Ctx) error {
-	query:=c.Query("q")
+	query := c.Query("q")
 
 	if query == "" {
-		return response.Response(c,http.StatusBadRequest,"Search query is required",nil,nil)
+		return response.Response(c, http.StatusBadRequest, "Search query is required", nil, nil)
 	}
 
 	products, err := h.svc.SearchProducts(c.Context(), query)
-    if err != nil {
-        return response.Response(c,http.StatusInternalServerError,"Search failed",products,err)
-    }
+	if err != nil {
+		return response.Response(c, http.StatusInternalServerError, "Search failed", products, err)
+	}
 
 	return response.Response(c, http.StatusOK, "search result", products, nil)
 }
 
-
-
 func (h *AdminHandler) SearchUsers(c *fiber.Ctx) error {
-    query := c.Query("q")
-    if query == "" {
-        return response.Response(c,http.StatusBadRequest,"Search query is required",nil,nil)
-    }
+	query := c.Query("q")
+	if query == "" {
+		return response.Response(c, http.StatusBadRequest, "Search query is required", nil, nil)
+	}
 
-    users, err := h.svc.SearchUsers(c.Context(), query)
-    if err != nil {
-        return response.Response(c,http.StatusInternalServerError,"Search query is required",nil,err.Error())
-    }
+	users, err := h.svc.SearchUsers(c.Context(), query)
+	if err != nil {
+		return response.Response(c, http.StatusInternalServerError, "Search query is required", nil, err.Error())
+	}
 
-    return response.Response(c,http.StatusOK,"list of users found",users,nil)
+	return response.Response(c, http.StatusOK, "list of users found", users, nil)
 }
 
-
-
 func (h *AdminHandler) FilterProducts(c *fiber.Ctx) error {
-    filter := domain.ProductFilter{
-        Search:   c.Query("search"),
-        MinPrice: c.QueryFloat("min_price", 0),
-        MaxPrice: c.QueryFloat("max_price", 0),
-        Sort:     c.Query("sort"),
-        Category: c.Query("category"), 
-    }
+	filter := domain.ProductFilter{
+		Search:   c.Query("search"),
+		MinPrice: c.QueryFloat("min_price", 0),
+		MaxPrice: c.QueryFloat("max_price", 0),
+		Sort:     c.Query("sort"),
+		Category: c.Query("category"),
+	}
 
-    products, err := h.svc.FilterProducts(c.Context(), filter)
-    if err != nil {
-        return response.Response(c,http.StatusInternalServerError,"Failed to fetch products",nil,nil)
-    }
+	products, err := h.svc.FilterProducts(c.Context(), filter)
+	if err != nil {
+		return response.Response(c, http.StatusInternalServerError, "Failed to fetch products", nil, nil)
+	}
 
-    return response.Response(c,http.StatusOK,"success",products,nil)
+	return response.Response(c, http.StatusOK, "success", products, nil)
 }

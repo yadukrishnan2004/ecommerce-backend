@@ -8,27 +8,21 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler/dto"
-	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/usecase"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/pkg"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/usecase"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/utils/response"
 )
-
 
 type UserHandler struct {
 	svc usecase.UserUseCase
 }
-
-
 
 func NewUserHandler(svc usecase.UserUseCase) *UserHandler {
 	return &UserHandler{
 		svc: svc,
 	}
 }
-
-
-
 
 func (h *UserHandler) SignUp(c *fiber.Ctx) error {
 	var request dto.CreateUserRequest
@@ -42,25 +36,25 @@ func (h *UserHandler) SignUp(c *fiber.Ctx) error {
 	}
 
 	// request.Name = strings.TrimSpace(request.Name)
-	if strings.Contains(request.Name," "){
+	if strings.Contains(request.Name, " ") {
 		return response.Response(c, http.StatusBadRequest, "name cannot contain spaces", request.Name, "invalid name")
 	}
 
 	if strings.ContainsAny(request.Name, ".*#!+=-()/<>,:;'") {
-    return response.Response(c, http.StatusBadRequest, "name contains invalid characters .*#!+=-()/<>,:;'", request.Name, "invalid name")
+		return response.Response(c, http.StatusBadRequest, "name contains invalid characters .*#!+=-()/<>,:;'", request.Name, "invalid name")
 	}
 
 	request.Password = strings.TrimSpace(request.Password)
-	if strings.Contains(request.Password," "){
+	if strings.Contains(request.Password, " ") {
 		return response.Response(c, http.StatusBadRequest, "password cannot contain spaces", request.Password, "invalid password")
 	}
 
-	if !strings.HasSuffix(request.Email, "@gmail.com"){
+	if !strings.HasSuffix(request.Email, "@gmail.com") {
 		return response.Response(c, http.StatusBadRequest, "only gmail.com emails allowed", request.Email, "invalid email domain")
 	}
 
 	if strings.ContainsAny(request.Password, ".*#!+=-()/<>,:;'@") {
-    return response.Response(c, http.StatusBadRequest, "password contains invalid characters ",".*#!+=-()/<>,:;'", "invalid password")
+		return response.Response(c, http.StatusBadRequest, "password contains invalid characters ", ".*#!+=-()/<>,:;'", "invalid password")
 	}
 
 	token, err := h.svc.SignUp(c.Context(), request.Name, request.Email, request.Password)
@@ -81,10 +75,6 @@ func (h *UserHandler) SignUp(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, fmt.Sprintf("otp is send to your %s", request.Email), nil, nil)
 }
 
-
-
-
-
 func (h *UserHandler) OtpVerify(c *fiber.Ctx) error {
 	email, ok := c.Locals("email").(string)
 	if !ok {
@@ -98,25 +88,21 @@ func (h *UserHandler) OtpVerify(c *fiber.Ctx) error {
 	if err := pkg.Validate.Struct(otp); err != nil {
 		return response.Response(c, http.StatusBadRequest, "invalid request", otp, err.Error())
 	}
-	
+
 	if err := h.svc.VerifyOtp(c.Context(), email, otp.Otp); err != nil {
 		return response.Response(c, http.StatusNotAcceptable, "invalid code", otp, err.Error())
 	}
 
-		cookie := fiber.Cookie{
+	cookie := fiber.Cookie{
 		Name:     "jwtverify",
 		Value:    "",
 		Expires:  time.Now().Add(-time.Hour),
 		HTTPOnly: true,
-		}
+	}
 
 	c.Cookie(&cookie)
 	return response.Response(c, http.StatusOK, "user created", nil, nil)
 }
-
-
-
-
 
 func (h *UserHandler) SignIn(c *fiber.Ctx) error {
 	var request dto.SignInRequest
@@ -130,7 +116,7 @@ func (h *UserHandler) SignIn(c *fiber.Ctx) error {
 	}
 
 	if strings.ContainsAny(request.Password, ".*#!+=-()/<>,:;'") {
-    return response.Response(c, http.StatusBadRequest, "password contains invalid characters", nil, "invalid password")
+		return response.Response(c, http.StatusBadRequest, "password contains invalid characters", nil, "invalid password")
 	}
 
 	token, err := h.svc.SignIn(c.Context(), request.Email, request.Password)
@@ -152,10 +138,6 @@ func (h *UserHandler) SignIn(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, "login successful", request, nil)
 }
 
-
-
-
-
 func (h *UserHandler) Logout(c *fiber.Ctx) error {
 	cookie := fiber.Cookie{
 		Name:     "jwt",
@@ -169,9 +151,6 @@ func (h *UserHandler) Logout(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, "logged out successfully", nil, nil)
 }
 
-
-
-
 func (h *UserHandler) Forgotpassword(c *fiber.Ctx) error {
 	var getemail dto.Getemail
 	if err := c.BodyParser(&getemail); err != nil {
@@ -182,8 +161,8 @@ func (h *UserHandler) Forgotpassword(c *fiber.Ctx) error {
 	}
 
 	if !strings.HasSuffix(getemail.Email, "@gmail.com") {
-    return response.Response(c, http.StatusBadRequest, "only gmail.com emails allowed", nil, "invalid email domain")
-}
+		return response.Response(c, http.StatusBadRequest, "only gmail.com emails allowed", nil, "invalid email domain")
+	}
 
 	token, err := h.svc.ForgotPassword(c.Context(), getemail.Email)
 	if err != nil {
@@ -202,9 +181,6 @@ func (h *UserHandler) Forgotpassword(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, fmt.Sprintf("otp is send to your %s", getemail.Email), nil, nil)
 }
 
-
-
-
 func (h *UserHandler) Resetpassword(c *fiber.Ctx) error {
 	email, ok := c.Locals("email").(string)
 	if !ok {
@@ -221,7 +197,7 @@ func (h *UserHandler) Resetpassword(c *fiber.Ctx) error {
 	}
 
 	if strings.ContainsAny(Reset.Newpassword, ".*#!+=-()/<>,:;'") {
-    return response.Response(c, http.StatusBadRequest, "password contains invalid characters", nil, "invalid password")
+		return response.Response(c, http.StatusBadRequest, "password contains invalid characters", nil, "invalid password")
 	}
 
 	if err := h.svc.ResetPassword(c.Context(), email, Reset.Code, Reset.Newpassword); err != nil {
@@ -239,9 +215,6 @@ func (h *UserHandler) Resetpassword(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, "user updated", nil, nil)
 }
 
-
-
-
 func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 	user, ok := c.Locals("userid").(float64)
 	if !ok {
@@ -253,12 +226,12 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 		return response.Response(c, http.StatusBadRequest, "invalid input", nil, err.Error())
 	}
 
-	if strings.Contains(*req.Name," "){
+	if strings.Contains(*req.Name, " ") {
 		return response.Response(c, http.StatusBadRequest, "name cannot contain spaces", req.Name, "invalid name")
 	}
 
 	if strings.ContainsAny(*req.Name, ".*#!+=-()/<>,:;'") {
-    return response.Response(c, http.StatusBadRequest, "name contains invalid characters .*#!+=-()/<>,:;'", req.Name, "invalid name")
+		return response.Response(c, http.StatusBadRequest, "name contains invalid characters .*#!+=-()/<>,:;'", req.Name, "invalid name")
 	}
 
 	// update username input
@@ -271,9 +244,6 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 	}
 	return response.Response(c, http.StatusOK, "user updated", nil, nil)
 }
-
-
-
 
 func (h *UserHandler) GetProfile(c *fiber.Ctx) error {
 	userIDFloat, ok := c.Locals("userid").(float64)
@@ -288,58 +258,65 @@ func (h *UserHandler) GetProfile(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, user.Role, user, nil)
 }
 
-
-
-
 func (h *UserHandler) GetOrder(c *fiber.Ctx) error {
-    userIDFloat, ok := c.Locals("userid").(float64)
-    if !ok {
-        return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, nil)
-    }
+	userIDFloat, ok := c.Locals("userid").(float64)
+	if !ok {
+		return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, nil)
+	}
 
-    
-    orderID, err := c.ParamsInt("id")
-    if err != nil {
-        return response.Response(c,http.StatusBadRequest,"invalid user id",nil,nil)
-    }
+	orderID, err := c.ParamsInt("id")
+	if err != nil {
+		return response.Response(c, http.StatusBadRequest, "invalid user id", nil, nil)
+	}
 
-    
-    order, err := h.svc.GetOrderDetail(c.Context(), uint(orderID), uint(userIDFloat))
-    if err != nil {
-    
-        return response.Response(c,http.StatusInternalServerError,"user not found",nil,nil)
-    }
+	order, err := h.svc.GetOrderDetail(c.Context(), uint(orderID), uint(userIDFloat))
+	if err != nil {
 
-    return response.Response(c,http.StatusOK,"get order",order,nil)
+		return response.Response(c, http.StatusInternalServerError, "user not found", nil, nil)
+	}
+
+	return response.Response(c, http.StatusOK, "get order", order, nil)
+}
+func (h *UserHandler) GetOrderProduct(c *fiber.Ctx) error {
+	_, ok := c.Locals("userid").(float64)
+	if !ok {
+		return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, nil)
+	}
+
+	orderID, err := c.ParamsInt("id")
+	if err != nil {
+		return response.Response(c, http.StatusBadRequest, "invalid user id", nil, nil)
+	}
+
+	order, err := h.svc.GetOrderItemDetails(c.Context(), uint(orderID))
+	if err != nil {
+
+		return response.Response(c, http.StatusInternalServerError, "order not found", nil, nil)
+	}
+
+	return response.Response(c, http.StatusOK, "get order", order, nil)
 }
 
+func (h *UserHandler) CancelOrder(c *fiber.Ctx) error {
 
+	userIDFloat, ok := c.Locals("userid").(float64)
+	if !ok {
+		return response.Response(c, http.StatusBadRequest, "unauthrized", nil, nil)
+	}
 
-func (h *UserHandler) 	CancelOrder(c *fiber.Ctx) error {
+	orderID, err := c.ParamsInt("id")
+	if err != nil {
+		return response.Response(c, http.StatusBadRequest, "invalid order id", nil, nil)
+	}
 
-    userIDFloat, ok := c.Locals("userid").(float64)
-    if !ok {
-        return response.Response(c,http.StatusBadRequest,"unauthrized",nil,nil)
-    }
+	err = h.svc.CancelOrder(c.Context(), uint(orderID), uint(userIDFloat))
+	if err != nil {
 
+		return response.Response(c, http.StatusInternalServerError, "oreder cannot cancel", nil, err.Error())
+	}
 
-    orderID, err := c.ParamsInt("id")
-    if err != nil {
-        return response.Response(c,http.StatusBadRequest,"invalid order id",nil,nil)
-    }
-
-
-    err = h.svc.CancelOrder(c.Context(), uint(orderID), uint(userIDFloat))
-    if err != nil {
-
-        return response.Response(c,http.StatusInternalServerError,"oreder cannot cancel",nil,err.Error())
-    }
-
-    return response.Response(c,http.StatusOK,"Order cancelled successfully",nil,nil)
+	return response.Response(c, http.StatusOK, "Order cancelled successfully", nil, nil)
 }
-
-
-
 
 func (h *UserHandler) GetAll(c *fiber.Ctx) error {
 	product, err := h.svc.GetAllProducts(c.Context())
@@ -349,41 +326,34 @@ func (h *UserHandler) GetAll(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, "all users list", product, nil)
 }
 
-
-
 func (h *UserHandler) SearchProducts(c *fiber.Ctx) error {
-	query:=c.Query("q")
+	query := c.Query("q")
 
 	if query == "" {
-		return response.Response(c,http.StatusBadRequest,"Search query is required",nil,nil)
+		return response.Response(c, http.StatusBadRequest, "Search query is required", nil, nil)
 	}
 
 	products, err := h.svc.SearchProducts(c.Context(), query)
-    if err != nil {
-        return response.Response(c,http.StatusInternalServerError,"Search failed",products,err)
-    }
+	if err != nil {
+		return response.Response(c, http.StatusInternalServerError, "Search failed", products, err)
+	}
 
 	return response.Response(c, http.StatusOK, "search result", products, nil)
 }
 
-
-
 func (h *UserHandler) FilterProducts(c *fiber.Ctx) error {
-    filter := domain.ProductFilter{
-        Search:   c.Query("search"),
-        MinPrice: c.QueryFloat("min_price", 0),
-        MaxPrice: c.QueryFloat("max_price", 0),
-        Sort:     c.Query("sort"),
-        Category: c.Query("category"), 
-    }
+	filter := domain.ProductFilter{
+		Search:   c.Query("search"),
+		MinPrice: c.QueryFloat("min_price", 0),
+		MaxPrice: c.QueryFloat("max_price", 0),
+		Sort:     c.Query("sort"),
+		Category: c.Query("category"),
+	}
 
-    products, err := h.svc.FilterProducts(c.Context(), filter)
-    if err != nil {
-        return response.Response(c,http.StatusInternalServerError,"Failed to fetch products",nil,nil)
-    }
+	products, err := h.svc.FilterProducts(c.Context(), filter)
+	if err != nil {
+		return response.Response(c, http.StatusInternalServerError, "Failed to fetch products", nil, nil)
+	}
 
-    return response.Response(c,http.StatusOK,"success",products,nil)
+	return response.Response(c, http.StatusOK, "success", products, nil)
 }
-
-
-

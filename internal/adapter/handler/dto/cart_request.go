@@ -22,3 +22,16 @@ type CartItemResponse struct {
 type UpdateReq struct {
 	Quantity int `json:"quantity" validate:"required,min=0"`
 }
+
+
+type CartItemView struct {
+	CartID      uint
+	Quantity    uint
+	ProductID   uint
+	Name        string
+	Price       int64
+	Offer       string
+	OfferPrice  int
+	Description string
+	Stock       uint
+}

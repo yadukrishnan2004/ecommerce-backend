@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"errors"
-
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
 	"gorm.io/gorm"
 )
@@ -86,24 +85,35 @@ func (r *cartRepo) RemoveItem(ctx context.Context, userID, productID uint) error
 	return nil
 }
 
-func (r *cartRepo) GetCart(ctx context.Context, userID uint) ([]domain.CartItem, error) {
-	var dbItems []CartItem
+func (r *cartRepo) GetCart(
+	ctx context.Context,
+	userID uint,
+) ([]domain.CartItemView, error) {
+
+	var result []domain.CartItemView
 
 	err := r.db.WithContext(ctx).
-		Preload("Product").
-		Where("user_id = ?", userID).
-		Find(&dbItems).Error
+		Table("cart_items").
+		Select(`
+			cart_items.id AS cart_id,
+			cart_items.quantity,
+			products.id AS product_id,
+			products.name,
+			products.price,
+			products.offer,
+			products.offer_price,
+			products.description,
+			products.stock
+		`).
+		Joins("JOIN products ON products.id = cart_items.product_id").
+		Where("cart_items.user_id = ?", userID).
+		Scan(&result).Error
 
 	if err != nil {
 		return nil, err
 	}
 
-	var items []domain.CartItem
-	for _, item := range dbItems {
-		items = append(items, *item.ToDomain())
-	}
-
-	return items, nil
+	return result, nil
 }
 
 func (r *cartRepo) UpdateQuantity(ctx context.Context, userID, productID uint, quantity int) error {

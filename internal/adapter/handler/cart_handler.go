@@ -2,9 +2,10 @@ package handler
 
 import (
 	"net/http"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler/dto"
-	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/usecase"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/usecase"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/utils/response"
 )
 
@@ -95,13 +96,13 @@ func (h *CartHandler) GetCart(c *fiber.Ctx) error {
 	var responseItems []dto.CartItemResponse
 
 	for _, item := range items {
-		subTotal := float64(item.Product.Price) * float64(item.Quantity)
+		subTotal := float64(item.Price) * float64(item.Quantity)
 		grandTotal += subTotal
 
 		responseItems = append(responseItems, dto.CartItemResponse{
 			ProductID:   item.ProductID,
-			ProductName: item.Product.Name,
-			Price:       float64(item.Product.Price),
+			ProductName: item.Name,
+			Price:       float64(item.Price),
 			Quantity:    int(item.Quantity),
 			SubTotal:    subTotal,
 		})

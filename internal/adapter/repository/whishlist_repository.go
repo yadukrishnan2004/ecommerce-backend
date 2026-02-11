@@ -52,13 +52,27 @@ func (r *wishlistRepo) DeleteAll(ctx context.Context, userID uint) error {
         Delete(&domain.Wishlist{}).Error
 }
 
-func (r *wishlistRepo) GetAll(ctx context.Context, userID uint) ([]domain.Wishlist, error) {
-    var items []domain.Wishlist
+func (r *wishlistRepo) GetAll(ctx context.Context, userID uint) ([]domain.WishlistItemView, error) {
+    var items []domain.WishlistItemView
     
     err := r.db.WithContext(ctx).
-        Preload("Product"). 
-        Where("user_id = ?", userID).
-        Find(&items).Error
+        Table("wishlists").
+		Select(`
+			wishlists.id AS wishlist_id,
+			products.id AS product_id,
+			products.images,
+			products.category,
+			products.name,
+			products.price,
+			products.offer,
+			products.offer_price,
+			products.description,
+			products.stock,
+			products.production
+		`).
+		Joins("JOIN products ON products.id = wishlishts.product_id").
+		Where("cart_items.user_id = ?", userID).
+		Scan(&items).Error
         
     return items, err
 }

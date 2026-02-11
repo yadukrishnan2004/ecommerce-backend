@@ -39,5 +39,6 @@ func SetUpUserRouter(api fiber.Router, userH *handler.UserHandler) {
         protected.Get("/profile", userH.GetProfile)
         protected.Get("/:id/orders", userH.GetOrder)
         protected.Put("/:id/cancel", userH.CancelOrder)
+        protected.Get("/:id/orders/details",userH.GetOrderProduct)
     }
 }

@@ -36,64 +36,51 @@ func (s *orderService) PlaceOrder(ctx context.Context, userID uint) error {
         return errors.New("cart is empty")
     }
 
-    var totalAmount float64
+    // var totalAmount float64
     var orderItems []domain.OrderItem
 
     for _, cartItem := range cartItems {
-        if cartItem.Product.Stock < cartItem.Quantity {
-            return errors.New("product " + cartItem.Product.Name + " is out of stock")
+        if cartItem.Stock < cartItem.Quantity {
+            return errors.New("product " + cartItem.Name + " is out of stock")
+        }
+        Pro,err:=s.Product.GetByID(ctx,cartItem.ProductID)
+        if err != nil {
+            return errors.New("no paroduct found")
         }
 
-        totalAmount += float64(cartItem.Product.Price) * float64(cartItem.Quantity)
+        // totalAmount += float64(cartItem.Price) * float64(cartItem.Quantity)
 
         orderItems = append(orderItems, domain.OrderItem{
-            ProductID: cartItem.ProductID,
-            Quantity:  int(cartItem.Quantity),
-            Price:     float64(cartItem.Product.Price), 
+                    ProductId:Pro.ID ,
+                    Image: Pro.Images[0],
+                    Quantity: cartItem.Quantity,             
         })
     }
 
-
-    order := &domain.Order{
-        UserID:      userID,
-        TotalAmount: totalAmount,
-        Status:      "Pending",
-        Items:       orderItems,
-    }
-
-    return s.orderRepo.CreateOrder(ctx, order)
+    return s.orderRepo.CreateOrder(ctx,userID,orderItems)
 }
 
 func (s *orderService) GetOrderHistory(ctx context.Context, userID uint) ([]domain.Order, error) {
-    return s.orderRepo.GetOrdersByUserID(ctx, userID)
+    return s.orderRepo.GetAllOrdersByUserID(ctx, userID)
 }
 
 func (s *orderService) BuyNow(ctx context.Context, userID, productID uint, quantity int) error {
-    product, err := s.Product.GetByID(ctx, productID)
+    Pro, err := s.Product.GetByID(ctx, productID)
     if err != nil {
         return errors.New("product not found")
     }
 
   
-    if product.Stock < uint(quantity) {
+    if Pro.Stock < uint(quantity) {
         return errors.New("insufficient stock")
     }
-
-    totalAmount := float64(product.Price) * float64(quantity)
-
-    orderItem := domain.OrderItem{
-        ProductID: productID,
-        Quantity:  quantity,
-        Price:    float64(product.Price),
-    }
-
-    order := &domain.Order{
-        UserID:      userID,
-        TotalAmount: float64(totalAmount),
-        Status:      "Pending",
-        Items:       []domain.OrderItem{orderItem},
-    }
-    return s.orderRepo.CreateSingleOrder(ctx, order)
+        var orderItems []domain.OrderItem
+        orderItems = append(orderItems, domain.OrderItem{
+                    ProductId:Pro.ID ,
+                    Image: Pro.Images[0],
+                    Quantity: uint(quantity),
+        })
+    return s.orderRepo.CreateOrder(ctx,userID,orderItems)
 }
 
 

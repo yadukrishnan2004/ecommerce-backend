@@ -3,6 +3,7 @@ package domain
 import "context"
 
 type Address struct {
+	ID        uint   `json:"id" gorm:"primarykey"`
 	UserID    uint   `json:"user_id"`
 	Name      string `json:"name" validate:"required"`
 	Phone     string `json:"phone" validate:"required,min=10"`
