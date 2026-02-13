@@ -61,7 +61,7 @@ func (h *CartHandler) ClearCart(c *fiber.Ctx) error {
 }
 
 func (h *CartHandler) RemoveItem(c *fiber.Ctx) error {
-	userIDFloat, ok := c.Locals("user_id").(float64)
+	userIDFloat, ok := c.Locals("userid").(float64)
 	if !ok {
 		return response.Response(c, http.StatusUnauthorized, "no user found", nil, nil)
 	}

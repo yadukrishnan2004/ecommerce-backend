@@ -15,15 +15,15 @@ func SetUpAdminRouter(api fiber.Router, adminH *handler.AdminHandler) {
 		admin.Post("/users/:id/block", adminH.BlockUser)         // Changed from /block/:id
 		admin.Post("/products", adminH.AddNewProduct)            // Changed from /product
 		admin.Get("/products", adminH.GetAll)                    // Changed from /allproducts
-		admin.Get("/products/:id", adminH.GetProduct)            // Fixed casing
 		admin.Get("/products/status/:status", adminH.Production) // Changed from /production/:status
+		admin.Get("/products/search", adminH.SearchProducts)     // Changed from /search
+		admin.Get("/products/filter", adminH.FilterProducts)     // Changed from /filter
+		admin.Get("/products/:id", adminH.GetProduct)            // Fixed casing
 		admin.Get("/orders", adminH.GetAllOrders)
 		admin.Delete("/products/:id", adminH.DeleteProduct) // Fixed casing
 		admin.Delete("/users/:id", adminH.DeleteUser)       // Changed from /user
 		admin.Put("/orders/:id", adminH.UpdateStatus)
-		admin.Get("/products/search", adminH.SearchProducts) // Changed from /search
 		admin.Get("/users/search", adminH.SearchUsers)
-		admin.Get("/products/filter", adminH.FilterProducts) // Changed from /filter
 	}
 
 }

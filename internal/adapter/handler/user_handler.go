@@ -65,7 +65,7 @@ func (h *UserHandler) SignUp(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, msg, nil, nil)
 }
 
-func (h *UserHandler) OtpVerify(c *fiber.Ctx) error {
+func (h *UserHandler) 	OtpVerify(c *fiber.Ctx) error {
 	var otp dto.Otp
 
 	if err := c.BodyParser(&otp); err != nil {

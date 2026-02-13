@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
 	"gorm.io/gorm"
 )
@@ -12,7 +13,7 @@ type Order struct {
 	UserID      uint    `json:"user_id"`
 	User        User    `json:"user" gorm:"foreignKey:UserID;references:ID"`
 	Status      string  `json:"status" gorm:"default:pending"`
-	Quantity    uint	`json:"quantity"`
+	Quantity    uint    `json:"quantity"`
 	TotalAmount float64 `json:"total"`
 }
 
@@ -22,13 +23,42 @@ type OrderItem struct {
 	OrderId uint
 	Order   Order `gorm:"foreignkey:OrderId;references:ID"`
 
-    image   string
+	Image string
 
 	ProductId uint
 	Product   Product `gorm:"foreignkey:ProductId;references:ID"`
 
 	Quantity uint
 	Price    float64
+}
+
+func (o *Order) ToDomain() domain.Order {
+	return domain.Order{
+		UserID:      o.UserID,
+		Status:      o.Status,
+		Quantity:    o.Quantity,
+		TotalAmount: o.TotalAmount,
+	}
+}
+
+func (oi *OrderItem) ToDomain() domain.OrderItem {
+	return domain.OrderItem{
+		OrderId:   oi.OrderId,
+		Image:     oi.Image,
+		ProductId: oi.ProductId,
+		Quantity:  oi.Quantity,
+		Price:     oi.Price,
+	}
+}
+
+func FromDomainOrderItem(oi domain.OrderItem) OrderItem {
+	return OrderItem{
+		OrderId:   oi.OrderId,
+		Image:     oi.Image,
+		ProductId: oi.ProductId,
+		Quantity:  oi.Quantity,
+		Price:     oi.Price,
+	}
 }
 
 type orderRepo struct {
@@ -48,10 +78,10 @@ func (r *orderRepo) CreateOrder(ctx context.Context, userid uint, Orders []domai
 
 	tx := r.db.WithContext(ctx).Begin()
 	dbOrder := Order{
-			UserID: userid,
-			Status: "pending",
-			Quantity: uint(len(Orders)),
-			TotalAmount: totalPrice,
+		UserID:      userid,
+		Status:      "pending",
+		Quantity:    uint(len(Orders)),
+		TotalAmount: totalPrice,
 	}
 
 	if err := tx.Create(&dbOrder).Error; err != nil {
@@ -59,15 +89,17 @@ func (r *orderRepo) CreateOrder(ctx context.Context, userid uint, Orders []domai
 		return err
 	}
 
-	for i:= range Orders{
-		Orders[i].OrderId=dbOrder.ID
+	var dbOrderItems []OrderItem
+	for _, item := range Orders {
+		dbItem := FromDomainOrderItem(item)
+		dbItem.OrderId = dbOrder.ID
+		dbOrderItems = append(dbOrderItems, dbItem)
 	}
 
-	if err := tx.Create(&Orders).Error; err != nil {
+	if err := tx.Create(&dbOrderItems).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
-
 
 	if err := tx.Where("user_id = ?", dbOrder.UserID).Delete(&CartItem{}).Error; err != nil {
 		tx.Rollback()
@@ -78,20 +110,25 @@ func (r *orderRepo) CreateOrder(ctx context.Context, userid uint, Orders []domai
 }
 
 func (r *orderRepo) GetOrdersByUserIDAndOrderID(ctx context.Context, userID, OrderID uint) ([]domain.Order, error) {
-	var dbOrders []domain.Order
+	var dbOrders []Order
 	err := r.db.WithContext(ctx).
-		Where("user_id = ? AND id", userID, OrderID).
+		Where("user_id = ? AND id = ?", userID, OrderID).
 		Order("created_at desc").
 		Find(&dbOrders).Error
 
 	if err != nil {
 		return nil, err
 	}
-	return dbOrders, nil
+
+	var orders []domain.Order
+	for _, o := range dbOrders {
+		orders = append(orders, o.ToDomain())
+	}
+	return orders, nil
 }
 
 func (r *orderRepo) GetAllOrders(ctx context.Context) ([]domain.Order, error) {
-	var dbOrders []domain.Order
+	var dbOrders []Order
 
 	err := r.db.WithContext(ctx).
 		Order("created_at desc").
@@ -101,11 +138,16 @@ func (r *orderRepo) GetAllOrders(ctx context.Context) ([]domain.Order, error) {
 		return nil, err
 	}
 
-	return dbOrders, nil
+	var orders []domain.Order
+	for _, o := range dbOrders {
+		orders = append(orders, o.ToDomain())
+	}
+
+	return orders, nil
 }
 
 func (r *orderRepo) GetAllOrdersByUserID(ctx context.Context, userID uint) ([]domain.Order, error) {
-	var dbOrders []domain.Order
+	var dbOrders []Order
 
 	err := r.db.WithContext(ctx).
 		Where("user_id = ?", userID).
@@ -115,24 +157,32 @@ func (r *orderRepo) GetAllOrdersByUserID(ctx context.Context, userID uint) ([]do
 	if err != nil {
 		return nil, err
 	}
-	return dbOrders, nil
+
+	var orders []domain.Order
+	for _, o := range dbOrders {
+		orders = append(orders, o.ToDomain())
+	}
+	return orders, nil
 }
 
-
 func (r *orderRepo) GetOrdersByOrderID(ctx context.Context, OrderID uint) ([]domain.OrderItem, error) {
-	var OrderItem []domain.OrderItem
-	err:=r.db.WithContext(ctx).
-	Where("OrderId = ?",OrderID).
-	Order("created_at desc").
-	Find(&OrderItem).Error
+	var dbOrderItems []OrderItem
+	err := r.db.WithContext(ctx).
+		Where("order_id = ?", OrderID).
+		Order("created_at desc").
+		Find(&dbOrderItems).Error
 
 	if err != nil {
 		return nil, err
 	}
-	return OrderItem, nil
+
+	var orderItems []domain.OrderItem
+	for _, item := range dbOrderItems {
+		orderItems = append(orderItems, item.ToDomain())
+	}
+
+	return orderItems, nil
 }
-
-
 
 func (r *orderRepo) UpdateStatus(ctx context.Context, orderID uint, status string) error {
 	result := r.db.WithContext(ctx).
@@ -150,12 +200,9 @@ func (r *orderRepo) UpdateStatus(ctx context.Context, orderID uint, status strin
 	return nil
 }
 
-
-
-
 func (r *orderRepo) CancelOrder(ctx context.Context, orderID, userID uint) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		var dbOrder domain.Order
+		var dbOrder Order
 
 		if err := tx.Set("gorm:query_option", "FOR UPDATE").
 			Where("id = ? AND user_id = ?", orderID, userID).
@@ -171,13 +218,13 @@ func (r *orderRepo) CancelOrder(ctx context.Context, orderID, userID uint) error
 			return err
 		}
 
-		items,err:=r.GetOrdersByOrderID(ctx,orderID)
+		items, err := r.GetOrdersByOrderID(ctx, orderID)
 		if err != nil {
 			return err
 		}
 
 		for _, item := range items {
-			if err := tx.Model(&domain.Product{}).
+			if err := tx.Model(&Product{}).
 				Where("id = ?", item.ProductId).
 				Update("stock", gorm.Expr("stock + ?", item.Quantity)).Error; err != nil {
 				return err
