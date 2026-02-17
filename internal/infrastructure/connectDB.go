@@ -44,6 +44,7 @@ func ConnectDB(cfg *config.Config) *gorm.DB {
 		&repository.Wishlist{},
 		&repository.Order{},
 		&repository.OrderItem{},
+		&repository.Address{},
 	); err != nil {
 		log.Fatalf("Failed to auto migrate: %v", err)
 	}

@@ -1,6 +1,10 @@
 package domain
 
-import "context"
+import (
+	"context"
+
+	"github.com/lib/pq"
+)
 
 
 
@@ -16,7 +20,7 @@ type WishlistItemView struct {
 	WishlistID uint     `json:"wishlist_id"`
 	ProductID  uint     `json:"product_id"`
 
-	Images     []string `json:"images"`
+	Images     pq.StringArray `gorm:"type:text[]"`
 	Category   string   `json:"category"`
 	Name       string   `json:"name"`
 

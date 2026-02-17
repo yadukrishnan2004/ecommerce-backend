@@ -33,7 +33,7 @@ func (h *AddressHandler) AddAddress(c *fiber.Ctx) error {
 	if err := h.svc.AddAddress(c.Context(), &address); err != nil {
 		return response.Response(c, http.StatusInternalServerError, "address not created", nil, err.Error())
 	}
-	return response.Response(c, http.StatusInternalServerError, "Address added successfully", address, nil)
+	return response.Response(c, http.StatusOK, "Address added successfully", address, nil)
 }
 
 func (h *AddressHandler) GetAddresses(c *fiber.Ctx) error {

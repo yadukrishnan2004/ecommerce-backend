@@ -21,6 +21,7 @@ type OrderItem struct {
 
 
 type Order struct {
+	ID          uint
 	UserID      uint    `json:"user_id"`
 	User        User    `json:"user" gorm:"foreignKey:UserID;references:ID"`
 	Status      string  `json:"status"`

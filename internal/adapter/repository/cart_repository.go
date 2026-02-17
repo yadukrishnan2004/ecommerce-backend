@@ -98,6 +98,7 @@ func (r *cartRepo) GetCart(
 			cart_items.id AS cart_id,
 			cart_items.quantity,
 			products.id AS product_id,
+			products.images AS image,
 			products.name,
 			products.price,
 			products.offer,

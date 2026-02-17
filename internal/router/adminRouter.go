@@ -10,18 +10,18 @@ func SetUpAdminRouter(api fiber.Router, adminH *handler.AdminHandler) {
 	admin := api.Group("/admin")
 	admin.Use(middleware.Adminmiddleware)
 	{
-		admin.Patch("/users/:id", adminH.UpdateUser)             // Changed from /update/:id to /users/:id (RESTful)
-		admin.Patch("/products/:id/status", adminH.UpdateStatus) // Changed from /production/:id
-		admin.Post("/users/:id/block", adminH.BlockUser)         // Changed from /block/:id
-		admin.Post("/products", adminH.AddNewProduct)            // Changed from /product
-		admin.Get("/products", adminH.GetAll)                    // Changed from /allproducts
-		admin.Get("/products/status/:status", adminH.Production) // Changed from /production/:status
-		admin.Get("/products/search", adminH.SearchProducts)     // Changed from /search
-		admin.Get("/products/filter", adminH.FilterProducts)     // Changed from /filter
-		admin.Get("/products/:id", adminH.GetProduct)            // Fixed casing
+		admin.Patch("/users/:id", adminH.UpdateUser)             
+		admin.Patch("/products/:id/status", adminH.UpdateStatus) 
+		admin.Post("/users/:id/block", adminH.BlockUser)         
+		admin.Post("/products", adminH.AddNewProduct)            
+		admin.Get("/products", adminH.GetAll)                    
+		admin.Get("/products/status/:status", adminH.Production) 
+		admin.Get("/products/search", adminH.SearchProducts)     
+		admin.Get("/products/filter", adminH.FilterProducts)     
+		admin.Get("/products/:id", adminH.GetProduct)            
 		admin.Get("/orders", adminH.GetAllOrders)
-		admin.Delete("/products/:id", adminH.DeleteProduct) // Fixed casing
-		admin.Delete("/users/:id", adminH.DeleteUser)       // Changed from /user
+		admin.Delete("/products/:id", adminH.DeleteProduct) 
+		admin.Delete("/users/:id", adminH.DeleteUser)       
 		admin.Put("/orders/:id", adminH.UpdateStatus)
 		admin.Get("/users/search", adminH.SearchUsers)
 	}

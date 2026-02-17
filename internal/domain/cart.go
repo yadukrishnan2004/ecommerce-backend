@@ -2,6 +2,8 @@ package domain
 
 import (
 	"context"
+
+	"github.com/lib/pq"
 )
 
 type CartItem struct {
@@ -13,6 +15,7 @@ type CartItem struct {
 }
 
 type CartItemView struct {
+	Image       pq.StringArray `gorm:"type:text[]"`
 	CartID      uint
 	Quantity    uint
 	ProductID   uint

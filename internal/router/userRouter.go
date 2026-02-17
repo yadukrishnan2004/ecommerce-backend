@@ -19,6 +19,7 @@ func SetUpUserRouter(api fiber.Router, userH *handler.UserHandler) {
 		userRoutes.Get("/allproducts", userH.GetAll)
 		userRoutes.Get("/search", userH.SearchProducts)
 		userRoutes.Get("/filter", userH.FilterProducts)
+		userRoutes.Get("/products/:id", userH.GetProduct) 
 	}
 
 	// SPECIAL ROUTES (Reset Token Required)

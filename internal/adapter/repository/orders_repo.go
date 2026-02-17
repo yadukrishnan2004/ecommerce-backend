@@ -34,6 +34,7 @@ type OrderItem struct {
 
 func (o *Order) ToDomain() domain.Order {
 	return domain.Order{
+		ID: o.ID,
 		UserID:      o.UserID,
 		Status:      o.Status,
 		Quantity:    o.Quantity,

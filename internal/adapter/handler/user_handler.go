@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -65,7 +66,7 @@ func (h *UserHandler) SignUp(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, msg, nil, nil)
 }
 
-func (h *UserHandler) 	OtpVerify(c *fiber.Ctx) error {
+func (h *UserHandler) OtpVerify(c *fiber.Ctx) error {
 	var otp dto.Otp
 
 	if err := c.BodyParser(&otp); err != nil {
@@ -108,10 +109,11 @@ func (h *UserHandler) SignIn(c *fiber.Ctx) error {
 		return response.Response(c, http.StatusBadRequest, "password contains invalid characters", nil, "invalid password")
 	}
 
-	token, err := h.svc.SignIn(c.Context(), request.Email, request.Password)
+	userdata, token, err := h.svc.SignIn(c.Context(), request.Email, request.Password)
 	if err != nil {
 		return response.Response(c, http.StatusUnauthorized, "user not found", request, err.Error())
 	}
+	fmt.Println(request)
 
 	cookie := fiber.Cookie{
 		Name:     "jwt",
@@ -124,7 +126,7 @@ func (h *UserHandler) SignIn(c *fiber.Ctx) error {
 
 	c.Cookie(&cookie)
 
-	return response.Response(c, http.StatusOK, "login successful", request, nil)
+	return response.Response(c, http.StatusOK, "login successful", userdata, nil)
 }
 
 func (h *UserHandler) Logout(c *fiber.Ctx) error {
@@ -202,6 +204,18 @@ func (h *UserHandler) Resetpassword(c *fiber.Ctx) error {
 
 	c.Cookie(&cookie)
 	return response.Response(c, http.StatusOK, "user updated", nil, nil)
+}
+
+func (h *UserHandler) GetProduct(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return response.Response(c, http.StatusBadRequest, "no requst found", nil, err.Error())
+	}
+	product, err := h.svc.GetProduct(c.Context(), uint(id))
+	if err != nil {
+		return response.Response(c, http.StatusBadRequest, "Product not found", nil, err.Error())
+	}
+	return response.Response(c, http.StatusOK, "product found", product, nil)
 }
 
 func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
