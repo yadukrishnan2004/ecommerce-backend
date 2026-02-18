@@ -45,8 +45,10 @@ func (o *Order) ToDomain() domain.Order {
 func (oi *OrderItem) ToDomain() domain.OrderItem {
 	return domain.OrderItem{
 		OrderId:   oi.OrderId,
+		Order:     oi.Order.ToDomain(),
 		Image:     oi.Image,
 		ProductId: oi.ProductId,
+		Product:   *oi.Product.ToDomain(),
 		Quantity:  oi.Quantity,
 		Price:     oi.Price,
 	}
@@ -173,6 +175,8 @@ func (r *orderRepo) GetAllOrdersByUserID(ctx context.Context, userID uint) ([]do
 func (r *orderRepo) GetOrdersByOrderID(ctx context.Context, OrderID uint) ([]domain.OrderItem, error) {
 	var dbOrderItems []OrderItem
 	err := r.db.WithContext(ctx).
+		Preload("Product").
+		Preload("Order").
 		Where("order_id = ?", OrderID).
 		Order("created_at desc").
 		Find(&dbOrderItems).Error

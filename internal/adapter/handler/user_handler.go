@@ -113,7 +113,6 @@ func (h *UserHandler) SignIn(c *fiber.Ctx) error {
 	if err != nil {
 		return response.Response(c, http.StatusUnauthorized, "user not found", request, err.Error())
 	}
-	fmt.Println(request)
 
 	cookie := fiber.Cookie{
 		Name:     "jwt",

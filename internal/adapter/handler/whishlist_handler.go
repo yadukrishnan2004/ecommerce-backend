@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -71,14 +70,10 @@ func (h *WishlistHandler) RemoveFromWishlist(c *fiber.Ctx) error {
 }
 
 func (h *WishlistHandler) ClearWishlist(c *fiber.Ctx) error {
-
-	fmt.Println("ClearWishlist handler reached")
 	userIDFloat, ok := c.Locals("userid").(float64)
 	if !ok {
-		fmt.Println("Failed to get userid from locals")
 		return response.Response(c, fiber.StatusBadRequest, "unauthrized", nil, nil)
 	}
-	fmt.Printf("UserID from locals: %v\n", userIDFloat)
 	userID := uint(userIDFloat)
 
 	erro := h.svc.ClearWishlist(c.Context(), userID)

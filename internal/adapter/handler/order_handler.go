@@ -76,3 +76,22 @@ func (h *OrderHandler) BuyNow(c *fiber.Ctx) error {
 
 	return response.Response(c, http.StatusOK, "Order placed successfully", nil, nil)
 }
+
+func (h *OrderHandler) GetOrder(c *fiber.Ctx) error {
+	userIDFloat, ok := c.Locals("userid").(float64)
+	if !ok {
+		return response.Response(c, fiber.StatusUnauthorized, "no user found", nil, nil)
+	}
+
+	id, err := c.ParamsInt("id")
+	if err != nil {
+		return response.Response(c, fiber.StatusBadRequest, "invalid order id", nil, nil)
+	}
+
+	orderItems, err := h.svc.GetOrderDetails(c.Context(), uint(userIDFloat), uint(id))
+	if err != nil {
+		return response.Response(c, http.StatusInternalServerError, "failed to get order details", nil, err.Error())
+	}
+
+	return response.Response(c, http.StatusOK, "Order details fetched successfully", orderItems, nil)
+}

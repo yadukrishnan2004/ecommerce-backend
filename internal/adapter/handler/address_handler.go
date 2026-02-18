@@ -37,7 +37,10 @@ func (h *AddressHandler) AddAddress(c *fiber.Ctx) error {
 }
 
 func (h *AddressHandler) GetAddresses(c *fiber.Ctx) error {
-	userIDFloat, _ := c.Locals("userid").(float64)
+	userIDFloat, ok := c.Locals("userid").(float64)
+	if !ok {
+		return response.Response(c, http.StatusUnauthorized, "unauthrized", nil, nil)
+	}
 
 	addresses, err := h.svc.GetUserAddresses(c.Context(), uint(userIDFloat))
 	if err != nil {

@@ -11,6 +11,7 @@ type OrderService interface {
 	PlaceOrder(ctx context.Context, userID uint) error
 	GetOrderHistory(ctx context.Context, userID uint) ([]domain.Order, error)
 	BuyNow(ctx context.Context, userID, productID uint, quantity int) error
+	GetOrderDetails(ctx context.Context, userID, orderID uint) ([]domain.OrderItem, error)
 }
 
 type orderService struct {
@@ -82,4 +83,28 @@ func (s *orderService) BuyNow(ctx context.Context, userID, productID uint, quant
 		Price:     Pro.Price,
 	})
 	return s.orderRepo.CreateOrder(ctx, userID, orderItems)
+}
+
+func (s *orderService) GetOrderDetails(ctx context.Context, userID, orderID uint) ([]domain.OrderItem, error) {
+	// 1. Verify ownership (optional but good practice)
+	// For now, we rely on the repo to fetch by order ID, but strict ownership check might need fetching order first
+	// Assuming GetOrdersByOrderID is enough, but strictly we should check if Order.UserID == userID
+	// Let's trust the repo fetch for now or we can add a check if needed.
+	// Actually frontend calls this with just orderID, but from 'MyOrders' which implies ownership.
+	// To be safe, we should probably fetch order first or modify repo to check user_id too.
+	// But sticking to the plan:
+
+	items, err := s.orderRepo.GetOrdersByOrderID(ctx, orderID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Security check: ensure the first item (if any) belongs to the order that belongs to the user
+	if len(items) > 0 {
+		if items[0].Order.UserID != userID {
+			return nil, errors.New("unauthorized")
+		}
+	}
+
+	return items, nil
 }
