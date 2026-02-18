@@ -71,14 +71,19 @@ func (h *WishlistHandler) RemoveFromWishlist(c *fiber.Ctx) error {
 
 func (h *WishlistHandler) ClearWishlist(c *fiber.Ctx) error {
 
-	userIDFloat, ok := c.Locals("userid").(float64)
+	idStr, ok := c.Locals("userid").(string)
 	if !ok {
 		return response.Response(c, fiber.StatusBadRequest, "unauthrized", nil, nil)
 	}
-
-	err := h.svc.ClearWishlist(c.Context(), uint(userIDFloat))
+	idUint, err := strconv.Atoi(idStr)
 	if err != nil {
-		return response.Response(c, http.StatusInternalServerError, "Failed to clear wishlist", nil, err.Error())
+		return response.Response(c, fiber.StatusBadRequest, "faile to convert the userid", nil, nil)
+	}
+	userID := uint(idUint)
+
+	erro := h.svc.ClearWishlist(c.Context(), userID)
+	if erro != nil {
+		return response.Response(c, http.StatusInternalServerError, "Failed to clear wishlist", nil, erro.Error())
 	}
 
 	return response.Response(c, fiber.StatusOK, "Wishlist cleared successfully", nil, nil)
