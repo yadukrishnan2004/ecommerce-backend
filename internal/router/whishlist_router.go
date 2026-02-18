@@ -10,9 +10,9 @@ func SetupWishlistRoutes(api fiber.Router, wishH *handler.WishlistHandler) {
 	wish := api.Group("/wishlist")
 	wish.Use(middleware.UserMiddleware)
 	{
-		wish.Post("/:id", wishH.AddToWishlist)        
-		wish.Delete("/:id", wishH.RemoveFromWishlist) 
+		wish.Post("/:id", wishH.AddToWishlist)
 		wish.Delete("/clear", wishH.ClearWishlist)
+		wish.Delete("/:id", wishH.RemoveFromWishlist)
 		wish.Get("/", wishH.GetWishlist)
 	}
 }
