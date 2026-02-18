@@ -34,7 +34,7 @@ type OrderItem struct {
 
 func (o *Order) ToDomain() domain.Order {
 	return domain.Order{
-		ID: o.ID,
+		ID:          o.ID,
 		UserID:      o.UserID,
 		Status:      o.Status,
 		Quantity:    o.Quantity,
@@ -77,12 +77,16 @@ func (r *orderRepo) CreateOrder(ctx context.Context, userid uint, Orders []domai
 		totalPrice += float64(Orderss.Price)
 	}
 
+	shipping := 50.0
+	tax := totalPrice * 0.1
+	grandTotal := totalPrice + shipping + tax
+
 	tx := r.db.WithContext(ctx).Begin()
 	dbOrder := Order{
 		UserID:      userid,
 		Status:      "pending",
 		Quantity:    uint(len(Orders)),
-		TotalAmount: totalPrice,
+		TotalAmount: grandTotal,
 	}
 
 	if err := tx.Create(&dbOrder).Error; err != nil {
