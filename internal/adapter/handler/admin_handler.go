@@ -58,7 +58,22 @@ func (h *AdminHandler) BlockUser(c *fiber.Ctx) error {
 		return response.Response(c, http.StatusBadRequest, "invalid id", nil, err.Error())
 	}
 
-	msg, err := h.svc.BlockUser(c.Context(), uint(id))
+	var body struct {
+		Blocked *bool `json:"blocked"`
+	}
+
+	if err := c.BodyParser(&body); err != nil && err != fiber.ErrUnprocessableEntity {
+		// If body is present but invalid JSON, treat as bad request
+		return response.Response(c, http.StatusBadRequest, "invalid input", nil, err.Error())
+	}
+
+	// If client explicitly sends blocked flag, pass it through; otherwise, let service toggle.
+	var blockedOpt *bool
+	if body.Blocked != nil {
+		blockedOpt = body.Blocked
+	}
+
+	msg, err := h.svc.BlockUser(c.Context(), uint(id), blockedOpt)
 	if err != nil {
 		return response.Response(c, http.StatusInternalServerError, msg, nil, err.Error())
 	}
@@ -253,4 +268,21 @@ func (h *AdminHandler) FilterProducts(c *fiber.Ctx) error {
 	}
 
 	return response.Response(c, http.StatusOK, "success", products, nil)
+}
+
+func (h *AdminHandler) GetAllUsers(c *fiber.Ctx) error {
+	users, err := h.svc.GetAllUsers(c.Context())
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to fetch users"})
+	}
+	return response.Response(c, http.StatusOK, "Get all users Success", users, nil)
+}
+
+func (h *AdminHandler) GetDashboardGraphs(c *fiber.Ctx) error {
+	graphs, err := h.svc.GetDashboardGraphs(c.Context())
+	if err != nil {
+		return response.Response(c, http.StatusInternalServerError, "Failed to fetch dashboard graphs", nil, err.Error())
+	}
+
+	return response.Response(c, http.StatusOK, "Dashboard graphs fetched successfully", graphs, nil)
 }

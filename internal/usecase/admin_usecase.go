@@ -27,7 +27,7 @@ type Product struct {
 
 type AdminUseCase interface {
 	UpdateUser(ctx context.Context, userId uint, input AdminUpdateUserInput) (*domain.User, error)
-	BlockUser(ctx context.Context, userId uint) (string, error)
+	BlockUser(ctx context.Context, userId uint, blockedOpt *bool) (string, error)
 	AddNewProduct(ctx context.Context, newProduct *domain.Product) error
 	GetAllProducts(ctx context.Context) ([]domain.Product, error)
 	GetProduct(ctx context.Context, id uint) (*domain.Product, error)
@@ -40,6 +40,29 @@ type AdminUseCase interface {
 	SearchProducts(ctx context.Context, query string) ([]domain.Product, error)
 	SearchUsers(ctx context.Context, query string) ([]domain.User, error)
 	FilterProducts(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error)
+	GetAllUsers(ctx context.Context) ([]domain.User, error)
+	GetDashboardGraphs(ctx context.Context) (map[string]interface{}, error)
+}
+
+// ... existing struct and constructor ...
+
+// ... existing methods ...
+
+func (s *adminUseCase) GetDashboardGraphs(ctx context.Context) (map[string]interface{}, error) {
+	salesData, err := s.oredersRepo.GetTotalSalesByDate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	statusCounts, err := s.oredersRepo.GetOrderCountsByStatus(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"sales":  salesData,
+		"orders": statusCounts,
+	}, nil
 }
 
 type adminUseCase struct {
@@ -97,6 +120,7 @@ func (s *adminUseCase) UpdateUser(
 func (s *adminUseCase) BlockUser(
 	ctx context.Context,
 	userId uint,
+	blockedOpt *bool,
 ) (string, error) {
 
 	user, err := s.repo.GetByID(ctx, userId)
@@ -104,8 +128,12 @@ func (s *adminUseCase) BlockUser(
 		return "", err
 	}
 
-	// Toggle block status
-	user.IsBlocked = !user.IsBlocked
+	// If an explicit blocked value is provided, honor it; otherwise toggle.
+	if blockedOpt != nil {
+		user.IsBlocked = *blockedOpt
+	} else {
+		user.IsBlocked = !user.IsBlocked
+	}
 
 	if err := s.repo.Update(ctx, user); err != nil {
 		return "", err
@@ -217,23 +245,23 @@ func (s *adminUseCase) UpdateOrderStatus(ctx context.Context, orderID uint, stat
 	return s.oredersRepo.UpdateStatus(ctx, orderID, status)
 }
 
-
 func (s *adminUseCase) SearchProducts(ctx context.Context, query string) ([]domain.Product, error) {
-    cleanQuery := strings.TrimSpace(query)
-    
-    if cleanQuery == "" {
-        return []domain.Product{}, nil
-    }
-    return s.productrepo.Search(ctx, cleanQuery)
-}
+	cleanQuery := strings.TrimSpace(query)
 
+	if cleanQuery == "" {
+		return []domain.Product{}, nil
+	}
+	return s.productrepo.Search(ctx, cleanQuery)
+}
 
 func (s *adminUseCase) SearchUsers(ctx context.Context, query string) ([]domain.User, error) {
-    return s.repo.SearchUsers(ctx, query)
+	return s.repo.SearchUsers(ctx, query)
 }
 
-
-
 func (s *adminUseCase) FilterProducts(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error) {
-    return s.productrepo.GetProducts(ctx, filter)
+	return s.productrepo.GetProducts(ctx, filter)
+}
+
+func (s *adminUseCase) GetAllUsers(ctx context.Context) ([]domain.User, error) {
+	return s.repo.GetAllUsers(ctx)
 }
