@@ -31,6 +31,7 @@ type AdminUseCase interface {
 	AddNewProduct(ctx context.Context, newProduct *domain.Product) error
 	GetAllProducts(ctx context.Context) ([]domain.Product, error)
 	GetProduct(ctx context.Context, id uint) (*domain.Product, error)
+	UpdateProduct(ctx context.Context, id uint, req *domain.Product) error
 	DeleteProduct(ctx context.Context, id uint) error
 	DeleteUser(ctx context.Context, userID uint) error
 	Production(ctx context.Context, status string) ([]domain.Product, error)
@@ -42,6 +43,10 @@ type AdminUseCase interface {
 	FilterProducts(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error)
 	GetAllUsers(ctx context.Context) ([]domain.User, error)
 	GetDashboardGraphs(ctx context.Context) (map[string]interface{}, error)
+	GetUserByID(ctx context.Context, userID uint) (*domain.User, error)
+	GetUserCart(ctx context.Context, userID uint) ([]domain.CartItemView, error)
+	GetUserWishlist(ctx context.Context, userID uint) ([]domain.WishlistItemView, error)
+	GetUserAddresses(ctx context.Context, userID uint) ([]domain.Address, error)
 }
 
 // ... existing struct and constructor ...
@@ -69,13 +74,26 @@ type adminUseCase struct {
 	repo        domain.UserRepository
 	productrepo domain.ProductRepository
 	oredersRepo domain.OrderRepository
+	cartRepo    domain.CartRepository
+	wishRepo    domain.WishlistRepository
+	addressRepo domain.AddressRepository
 }
 
-func NewAdminUseCase(rep domain.UserRepository, productrepo domain.ProductRepository, oredersRepo domain.OrderRepository) AdminUseCase {
+func NewAdminUseCase(
+	rep domain.UserRepository,
+	productrepo domain.ProductRepository,
+	oredersRepo domain.OrderRepository,
+	cartRepo domain.CartRepository,
+	wishRepo domain.WishlistRepository,
+	addressRepo domain.AddressRepository,
+) AdminUseCase {
 	return &adminUseCase{
 		repo:        rep,
 		productrepo: productrepo,
 		oredersRepo: oredersRepo,
+		cartRepo:    cartRepo,
+		wishRepo:    wishRepo,
+		addressRepo: addressRepo,
 	}
 }
 
@@ -178,6 +196,53 @@ func (s *adminUseCase) GetProduct(
 	return product, nil
 }
 
+func (s *adminUseCase) UpdateProduct(
+	ctx context.Context,
+	id uint,
+	req *domain.Product,
+) error {
+	// First, fetch the existing product
+	product, err := s.productrepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Update the allowed fields
+	if req.Name != "" {
+		product.Name = req.Name
+	}
+	if req.Price != 0 {
+		product.Price = req.Price
+	}
+	if req.Description != "" {
+		product.Description = req.Description
+	}
+	if req.Category != "" {
+		product.Category = req.Category
+	}
+	if req.Offer != "" {
+		product.Offer = req.Offer
+	}
+	if req.OfferPrice != 0 {
+		product.OfferPrice = req.OfferPrice
+	}
+	if req.Production != "" {
+		product.Production = req.Production
+	}
+	product.Stock = req.Stock // Assuming 0 is a valid stock to overwrite with
+
+	// Usually images can optionally be overlaid/appended or replaced completely
+	if len(req.Images) > 0 {
+		product.Images = req.Images
+	}
+
+	if err := s.productrepo.Update(ctx, product); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *adminUseCase) DeleteProduct(
 	ctx context.Context,
 	id uint,
@@ -264,4 +329,20 @@ func (s *adminUseCase) FilterProducts(ctx context.Context, filter domain.Product
 
 func (s *adminUseCase) GetAllUsers(ctx context.Context) ([]domain.User, error) {
 	return s.repo.GetAllUsers(ctx)
+}
+
+func (s *adminUseCase) GetUserByID(ctx context.Context, userID uint) (*domain.User, error) {
+	return s.repo.GetByID(ctx, userID)
+}
+
+func (s *adminUseCase) GetUserCart(ctx context.Context, userID uint) ([]domain.CartItemView, error) {
+	return s.cartRepo.GetCart(ctx, userID)
+}
+
+func (s *adminUseCase) GetUserWishlist(ctx context.Context, userID uint) ([]domain.WishlistItemView, error) {
+	return s.wishRepo.GetAll(ctx, userID)
+}
+
+func (s *adminUseCase) GetUserAddresses(ctx context.Context, userID uint) ([]domain.Address, error) {
+	return s.addressRepo.GetByUserID(ctx, userID)
 }

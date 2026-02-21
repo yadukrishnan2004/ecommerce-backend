@@ -10,10 +10,11 @@ func SetUpAdminRouter(api fiber.Router, adminH *handler.AdminHandler) {
 	admin := api.Group("/admin")
 	admin.Use(middleware.Adminmiddleware)
 	{
-		admin.Patch("/users/:id", adminH.UpdateUser)
+		admin.Put("/users/:id", adminH.UpdateUser)
 		admin.Patch("/products/:id/status", adminH.UpdateStatus)
 		admin.Patch("/users/:id/block", adminH.BlockUser)
 		admin.Post("/products", adminH.AddNewProduct)
+		admin.Put("/products/:id", adminH.UpdateProduct)
 		admin.Get("/products", adminH.GetAll)
 		admin.Get("/products/status/:status", adminH.Production)
 		admin.Get("/products/search", adminH.SearchProducts)
@@ -23,9 +24,14 @@ func SetUpAdminRouter(api fiber.Router, adminH *handler.AdminHandler) {
 		admin.Delete("/products/:id", adminH.DeleteProduct)
 		admin.Delete("/users/:id", adminH.DeleteUser)
 		admin.Put("/orders/:id", adminH.UpdateStatus)
+		admin.Put("/orders/status/:id", adminH.UpdateOrdersStatus)
 		admin.Get("/users/search", adminH.SearchUsers)
 		admin.Get("/users", adminH.GetAllUsers)
 		admin.Get("/dashboard-graphs", adminH.GetDashboardGraphs)
+		admin.Get("/users/:id", adminH.GetUser)
+		admin.Get("/users/:id/cart", adminH.GetUserCart)
+		admin.Get("/users/:id/wishlist", adminH.GetUserWishlist)
+		admin.Get("/users/:id/addresses", adminH.GetUserAddresses)
 	}
 
 }

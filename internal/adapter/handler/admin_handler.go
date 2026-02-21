@@ -129,6 +129,25 @@ func (h *AdminHandler) GetProduct(c *fiber.Ctx) error {
 	return response.Response(c, http.StatusOK, "product found", product, nil)
 }
 
+func (h *AdminHandler) UpdateProduct(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil || id <= 0 {
+		return response.Response(c, http.StatusBadRequest, "invalid id", nil, err.Error())
+	}
+
+	var req domain.Product
+	if err := c.BodyParser(&req); err != nil {
+		return response.Response(c, http.StatusBadRequest, "invalid input", nil, err.Error())
+	}
+
+
+	if err := h.svc.UpdateProduct(c.Context(), uint(id), &req); err != nil {
+		return response.Response(c, http.StatusInternalServerError, "failed to update product", nil, err.Error())
+	}
+
+	return response.Response(c, http.StatusOK, "product updated successfully", nil, nil)
+}
+
 func (h *AdminHandler) DeleteProduct(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
@@ -285,4 +304,52 @@ func (h *AdminHandler) GetDashboardGraphs(c *fiber.Ctx) error {
 	}
 
 	return response.Response(c, http.StatusOK, "Dashboard graphs fetched successfully", graphs, nil)
+}
+
+func (h *AdminHandler) GetUser(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil || id <= 0 {
+		return response.Response(c, http.StatusBadRequest, "invalid id", nil, err.Error())
+	}
+	user, err := h.svc.GetUserByID(c.Context(), uint(id))
+	if err != nil {
+		return response.Response(c, http.StatusNotFound, "user not found", nil, err.Error())
+	}
+	return response.Response(c, http.StatusOK, "user fetched successfully", user, nil)
+}
+
+func (h *AdminHandler) GetUserCart(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil || id <= 0 {
+		return response.Response(c, http.StatusBadRequest, "invalid id", nil, err.Error())
+	}
+	cart, err := h.svc.GetUserCart(c.Context(), uint(id))
+	if err != nil {
+		return response.Response(c, http.StatusInternalServerError, "failed to get cart", nil, err.Error())
+	}
+	return response.Response(c, http.StatusOK, "cart fetched successfully", cart, nil)
+}
+
+func (h *AdminHandler) GetUserWishlist(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil || id <= 0 {
+		return response.Response(c, http.StatusBadRequest, "invalid id", nil, err.Error())
+	}
+	wishlist, err := h.svc.GetUserWishlist(c.Context(), uint(id))
+	if err != nil {
+		return response.Response(c, http.StatusInternalServerError, "failed to get wishlist", nil, err.Error())
+	}
+	return response.Response(c, http.StatusOK, "wishlist fetched successfully", wishlist, nil)
+}
+
+func (h *AdminHandler) GetUserAddresses(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil || id <= 0 {
+		return response.Response(c, http.StatusBadRequest, "invalid id", nil, err.Error())
+	}
+	addresses, err := h.svc.GetUserAddresses(c.Context(), uint(id))
+	if err != nil {
+		return response.Response(c, http.StatusInternalServerError, "failed to get addresses", nil, err.Error())
+	}
+	return response.Response(c, http.StatusOK, "addresses fetched successfully", addresses, nil)
 }
