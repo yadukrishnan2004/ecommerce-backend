@@ -40,8 +40,10 @@ func UserMiddleware(c *fiber.Ctx) error {
 	if !ok {
 		return response.Response(c, http.StatusUnauthorized, "unauthrized", nil, "invalid claims")
 	}
-	if claims["role"] != "user" {
-		return response.Response(c, http.StatusUnauthorized, "unauthrized", nil, "you cannot access this")
+	if claims["role"] !=  "user"{
+		if claims["role"] !=  "admin"{
+			return response.Response(c, http.StatusUnauthorized, "unauthrized", nil, "you cannot access this")
+		}
 	}
 	c.Locals("userid", claims["sub"])
 	fmt.Print(claims["sub"])

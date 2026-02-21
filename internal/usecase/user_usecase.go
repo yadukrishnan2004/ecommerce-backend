@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+
 	// "fmt"
 	"strings"
 	"time"
@@ -18,19 +19,20 @@ type UpdateUserInput struct {
 }
 
 type UserProfileOutput struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Role     string `json:"role"`
-	Address  []domain.Address `json:"address"`
-	Wishlist []domain.WishlistItemView `json:"wishlist"`
-	Cart     []domain.CartItemView `json:"cart"`
-	Orders   []domain.OrderItem `json:"orders"`
+	Name      string                    `json:"name"`
+	Email     string                    `json:"email"`
+	Role      string                    `json:"role"`
+	CreatedAt time.Time                 `json:"created_at"`
+	Address   []domain.Address          `json:"address"`
+	Wishlist  []domain.WishlistItemView `json:"wishlist"`
+	Cart      []domain.CartItemView     `json:"cart"`
+	Orders    []domain.OrderItem        `json:"orders"`
 }
 
 type UserUseCase interface {
 	SignUp(ctx context.Context, name, email, password string) (string, error)
 	VerifyOtp(ctx context.Context, email, code string) (string, error)
-	SignIn(ctx context.Context, email, password string) (*UserProfileOutput,string, error)
+	SignIn(ctx context.Context, email, password string) (*UserProfileOutput, string, error)
 	ForgotPassword(ctx context.Context, email string) (string, error)
 	ResetPassword(ctx context.Context, email, code, newPassword string) error
 	UpdateProfile(ctx context.Context, userID uint, input UpdateUserInput) error
@@ -55,24 +57,24 @@ type userUseCase struct {
 	address     domain.AddressRepository
 }
 
-func NewUserUseCase(repo domain.UserRepository, 
-	otp domain.NotificationClient, 
-	jwt auth.JwtService, 
-	oreders domain.OrderRepository, 
+func NewUserUseCase(repo domain.UserRepository,
+	otp domain.NotificationClient,
+	jwt auth.JwtService,
+	oreders domain.OrderRepository,
 	productrepo domain.ProductRepository,
-	cart        domain.CartRepository,
-	wishlist    domain.WishlistRepository,
-	address     domain.AddressRepository,
-	) UserUseCase {
+	cart domain.CartRepository,
+	wishlist domain.WishlistRepository,
+	address domain.AddressRepository,
+) UserUseCase {
 	return &userUseCase{
 		repo:        repo,
 		otp:         otp,
 		jwt:         jwt,
 		orders:      oreders,
 		productrepo: productrepo,
-		cart: cart,
-		wishlist: wishlist,
-		address: address,
+		cart:        cart,
+		wishlist:    wishlist,
+		address:     address,
 	}
 }
 
@@ -149,49 +151,47 @@ func (s *userUseCase) VerifyOtp(ctx context.Context, email, code string) (string
 	return token, nil
 }
 
-
-func (s *userUseCase) SignIn(ctx context.Context, email, password string) (*UserProfileOutput,string, error) {
+func (s *userUseCase) SignIn(ctx context.Context, email, password string) (*UserProfileOutput, string, error) {
 	user, err := s.repo.GetByEmail(ctx, email)
 
 	if err != nil {
-		return nil,"", errors.New("invalid email or password")
+		return nil, "", errors.New("invalid email or password")
 	}
 
 	if !user.IsActive {
-		return nil,"", errors.New("account not verified")
+		return nil, "", errors.New("account not verified")
 	}
 
 	if err := helper.VerifyHash(user.Password, password); !err {
 		return nil, "", errors.New("invalid email or password")
 	}
-	addre,_:=s.address.GetByUserID(ctx,user.ID)
-	cart,_:=s.cart.GetCart(ctx,user.ID)
-	wish,_:=s.wishlist.GetAll(ctx,user.ID)
-	order,_:=s.orders.GetAllOrdersByUserID(ctx,user.ID)
+	addre, _ := s.address.GetByUserID(ctx, user.ID)
+	cart, _ := s.cart.GetCart(ctx, user.ID)
+	wish, _ := s.wishlist.GetAll(ctx, user.ID)
+	order, _ := s.orders.GetAllOrdersByUserID(ctx, user.ID)
 
 	var orderitems []domain.OrderItem
 
-	for _,ord:=range order{
-		o,_:=s.orders.GetOrdersByOrderID(ctx,ord.ID)
-		orderitems=append(orderitems,o...)
+	for _, ord := range order {
+		o, _ := s.orders.GetOrdersByOrderID(ctx, ord.ID)
+		orderitems = append(orderitems, o...)
 	}
-	userdata:=UserProfileOutput{
-		Name: user.Name,
-		Email: user.Email,
-		Role: user.Role,
-		Cart: cart,
+	userdata := UserProfileOutput{
+		Name:     user.Name,
+		Email:    user.Email,
+		Role:     user.Role,
+		Cart:     cart,
 		Wishlist: wish,
-		Orders: orderitems,
-		Address: addre,
-
+		Orders:   orderitems,
+		Address:  addre,
 	}
 
 	acc, erro := s.jwt.GenerateToken(user.ID, s.jwt.AccessTTL, user.Role)
 	if erro != nil {
-		return nil,"", erro
+		return nil, "", erro
 	}
 	// fmt.Println("user",userdata,"acc",acc)
-	return &userdata,acc, nil
+	return &userdata, acc, nil
 }
 
 func (s *userUseCase) ForgotPassword(ctx context.Context, email string) (string, error) {
@@ -255,32 +255,29 @@ func (s *userUseCase) GetProfile(ctx context.Context, userID uint) (*UserProfile
 	if err != nil {
 		return nil, err
 	}
-	addre,_:=s.address.GetByUserID(ctx,users.ID)
-	cart,_:=s.cart.GetCart(ctx,users.ID)
-	wish,_:=s.wishlist.GetAll(ctx,users.ID)
-	order,_:=s.orders.GetAllOrdersByUserID(ctx,users.ID)
+	addre, _ := s.address.GetByUserID(ctx, users.ID)
+	cart, _ := s.cart.GetCart(ctx, users.ID)
+	wish, _ := s.wishlist.GetAll(ctx, users.ID)
+	order, _ := s.orders.GetAllOrdersByUserID(ctx, users.ID)
 
 	var orderitems []domain.OrderItem
 
-	for _,ord:=range order{
-		o,_:=s.orders.GetOrdersByOrderID(ctx,ord.ID)
-		orderitems=append(orderitems,o...)
+	for _, ord := range order {
+		o, _ := s.orders.GetOrdersByOrderID(ctx, ord.ID)
+		orderitems = append(orderitems, o...)
 	}
-	userdata:=UserProfileOutput{
-		Name: users.Name,
-		Email: users.Email,
-		Role: users.Role,
-		Cart: cart,
-		Wishlist: wish,
-		Orders: orderitems,
-		Address: addre,
-
+	userdata := UserProfileOutput{
+		Name:      users.Name,
+		Email:     users.Email,
+		Role:      users.Role,
+		CreatedAt: users.CreatedAt,
+		Cart:      cart,
+		Wishlist:  wish,
+		Orders:    orderitems,
+		Address:   addre,
 	}
 	return &userdata, nil
 }
-
-
-
 
 func (s *userUseCase) GetProduct(
 	ctx context.Context,
@@ -292,9 +289,6 @@ func (s *userUseCase) GetProduct(
 	}
 	return product, nil
 }
-
-
-
 
 func (s *userUseCase) GetOrderDetail(ctx context.Context, orderID, userID uint) ([]domain.Order, error) {
 	return s.orders.GetOrdersByUserIDAndOrderID(ctx, userID, orderID)

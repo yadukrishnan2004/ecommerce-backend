@@ -39,6 +39,7 @@ type UserRepository interface {
 	SaveSignup(ctx context.Context, signup *SignupRequest) error
 	GetSignup(ctx context.Context, email string) (*SignupRequest, error)
 	DeleteSignup(ctx context.Context, email string) error
+	GetAllUsers(ctx context.Context) ([]User, error)
 }
 
 type SignupRequest struct {

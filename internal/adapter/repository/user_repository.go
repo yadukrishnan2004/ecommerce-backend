@@ -201,3 +201,22 @@ func (r *userRepo) GetSignup(ctx context.Context, email string) (*domain.SignupR
 func (r *userRepo) DeleteSignup(ctx context.Context, email string) error {
 	return r.db.WithContext(ctx).Where("email = ?", email).Delete(&SignupRequest{}).Error
 }
+
+func (r *userRepo) GetAllUsers(ctx context.Context) ([]domain.User, error) {
+	var users []User
+
+	err := r.db.WithContext(ctx).
+		Order("created_at desc").
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+
+	domainUsers := make([]domain.User, 0, len(users))
+
+	for _, u := range users {
+		domainUsers = append(domainUsers, *u.ToDomain())
+	}
+
+	return domainUsers, nil
+}

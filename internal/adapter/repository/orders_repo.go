@@ -36,6 +36,7 @@ func (o *Order) ToDomain() domain.Order {
 	return domain.Order{
 		ID:          o.ID,
 		UserID:      o.UserID,
+		User:        *o.User.ToDomain(),
 		Status:      o.Status,
 		Quantity:    o.Quantity,
 		TotalAmount: o.TotalAmount,
@@ -138,6 +139,7 @@ func (r *orderRepo) GetAllOrders(ctx context.Context) ([]domain.Order, error) {
 	var dbOrders []Order
 
 	err := r.db.WithContext(ctx).
+		Preload("User").
 		Order("created_at desc").
 		Find(&dbOrders).Error
 
@@ -242,4 +244,36 @@ func (r *orderRepo) CancelOrder(ctx context.Context, orderID, userID uint) error
 
 		return nil
 	})
+}
+
+func (r *orderRepo) GetTotalSalesByDate(ctx context.Context) ([]domain.SalesData, error) {
+	var sales []domain.SalesData
+	// PostgreSQL: TO_CHAR(created_at, 'YYYY-MM-DD')
+	err := r.db.WithContext(ctx).
+		Model(&Order{}).
+		Select("TO_CHAR(created_at, 'YYYY-MM-DD') as date, SUM(total_amount) as total").
+		Where("status = ?", "Delivered"). // Only count delivered/completed orders
+		Group("TO_CHAR(created_at, 'YYYY-MM-DD')").
+		Order("date asc").
+		Limit(30). // Last 30 days
+		Scan(&sales).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return sales, nil
+}
+
+func (r *orderRepo) GetOrderCountsByStatus(ctx context.Context) ([]domain.StatusCount, error) {
+	var counts []domain.StatusCount
+	err := r.db.WithContext(ctx).
+		Model(&Order{}).
+		Select("status, count(*) as count").
+		Group("status").
+		Scan(&counts).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return counts, nil
 }
