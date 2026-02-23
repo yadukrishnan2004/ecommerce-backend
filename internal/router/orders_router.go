@@ -14,5 +14,6 @@ func SetupOrderRoutes(api fiber.Router, orderH *handler.OrderHandler) {
 		order.Get("/", orderH.GetOrderHistory)
 		order.Get("/:id", orderH.GetOrder)
 		order.Post("/buy-now", orderH.BuyNow)
+		order.Post("/verify-payment", orderH.VerifyPayment)
 	}
 }

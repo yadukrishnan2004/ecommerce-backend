@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+
 	"github.com/joho/godotenv"
 )
 
@@ -23,6 +24,9 @@ type Config struct {
 	SMTP_FROM      string
 	ADMIN_EMAIL    string
 	ADMIN_PASSWORD string
+
+	RAZORPAY_KEY    string
+	RAZORPAY_SECRET string
 }
 
 func getEnv(key, fallback string) string {
@@ -57,6 +61,9 @@ func Load() *Config {
 		SMTP_FROM:      getEnv("SMTP_FROM", ""),
 		ADMIN_EMAIL:    getEnv("ADMIN_EMAIL", ""),
 		ADMIN_PASSWORD: getEnv("ADMIN_PASSWORD", ""),
+
+		RAZORPAY_KEY:    getEnv("RAZORPAY_KEY", ""),
+		RAZORPAY_SECRET: getEnv("RAZORPAY_SECRET", ""),
 	}
 	return config
 }

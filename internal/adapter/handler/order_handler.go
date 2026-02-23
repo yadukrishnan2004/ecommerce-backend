@@ -23,11 +23,25 @@ func (h *OrderHandler) PlaceOrder(c *fiber.Ctx) error {
 		return response.Response(c, fiber.StatusUnauthorized, "no user found", nil, nil)
 	}
 
-	err := h.svc.PlaceOrder(c.Context(), uint(userIDFloat))
+	type PlaceOrderReq struct {
+		AddressID     uint   `json:"address_id"`
+		PaymentMethod string `json:"payment_method"`
+	}
+	req := new(PlaceOrderReq)
+	if err := c.BodyParser(req); err != nil {
+		return response.Response(c, fiber.StatusBadRequest, "invalid input", nil, nil)
+	}
+
+	razorpayOrderID, err := h.svc.PlaceOrder(c.Context(), uint(userIDFloat), req.AddressID, req.PaymentMethod)
 	if err != nil {
 		return response.Response(c, fiber.StatusBadRequest, "server", nil, err.Error())
 	}
-	return response.Response(c, fiber.StatusOK, "Order placed successfully", nil, nil)
+
+	resData := map[string]string{
+		"razorpay_order_id": razorpayOrderID,
+	}
+
+	return response.Response(c, fiber.StatusOK, "Order placed successfully", resData, nil)
 }
 
 func (h *OrderHandler) GetOrderHistory(c *fiber.Ctx) error {
@@ -57,8 +71,10 @@ func (h *OrderHandler) BuyNow(c *fiber.Ctx) error {
 	}
 
 	type BuyNowReq struct {
-		ProductID uint `json:"product_id"`
-		Quantity  int  `json:"quantity"`
+		ProductID     uint   `json:"product_id"`
+		Quantity      int    `json:"quantity"`
+		AddressID     uint   `json:"address_id"`
+		PaymentMethod string `json:"payment_method"`
 	}
 	req := new(BuyNowReq)
 	if err := c.BodyParser(req); err != nil {
@@ -69,12 +85,16 @@ func (h *OrderHandler) BuyNow(c *fiber.Ctx) error {
 		return response.Response(c, http.StatusBadRequest, "Quantity must be greater than 0", nil, nil)
 	}
 
-	err := h.svc.BuyNow(c.Context(), uint(userIDFloat), req.ProductID, req.Quantity)
+	razorpayOrderID, err := h.svc.BuyNow(c.Context(), uint(userIDFloat), req.AddressID, req.ProductID, req.Quantity, req.PaymentMethod)
 	if err != nil {
 		return response.Response(c, http.StatusInternalServerError, "server error", nil, err.Error())
 	}
 
-	return response.Response(c, http.StatusOK, "Order placed successfully", nil, nil)
+	resData := map[string]string{
+		"razorpay_order_id": razorpayOrderID,
+	}
+
+	return response.Response(c, http.StatusOK, "Order placed successfully", resData, nil)
 }
 
 func (h *OrderHandler) GetOrder(c *fiber.Ctx) error {
@@ -94,4 +114,23 @@ func (h *OrderHandler) GetOrder(c *fiber.Ctx) error {
 	}
 
 	return response.Response(c, http.StatusOK, "Order details fetched successfully", orderItems, nil)
+}
+
+func (h *OrderHandler) VerifyPayment(c *fiber.Ctx) error {
+	type VerifyPaymentReq struct {
+		RazorpayOrderID   string `json:"razorpay_order_id"`
+		RazorpayPaymentID string `json:"razorpay_payment_id"`
+		RazorpaySignature string `json:"razorpay_signature"`
+	}
+	req := new(VerifyPaymentReq)
+	if err := c.BodyParser(req); err != nil {
+		return response.Response(c, http.StatusBadRequest, "invalid input value", nil, nil)
+	}
+
+	err := h.svc.VerifyPayment(c.Context(), req.RazorpayOrderID, req.RazorpayPaymentID, req.RazorpaySignature)
+	if err != nil {
+		return response.Response(c, http.StatusBadRequest, "payment verification failed", nil, err.Error())
+	}
+
+	return response.Response(c, http.StatusOK, "Payment verified successfully", nil, nil)
 }

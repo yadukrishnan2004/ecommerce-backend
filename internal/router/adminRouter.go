@@ -21,6 +21,7 @@ func SetUpAdminRouter(api fiber.Router, adminH *handler.AdminHandler) {
 		admin.Get("/products/filter", adminH.FilterProducts)
 		admin.Get("/products/:id", adminH.GetProduct)
 		admin.Get("/orders", adminH.GetAllOrders)
+		admin.Get("/orders/:id", adminH.GetOrderDetails)
 		admin.Delete("/products/:id", adminH.DeleteProduct)
 		admin.Delete("/users/:id", adminH.DeleteUser)
 		admin.Put("/orders/:id", adminH.UpdateStatus)

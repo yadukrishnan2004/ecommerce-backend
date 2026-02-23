@@ -140,7 +140,6 @@ func (h *AdminHandler) UpdateProduct(c *fiber.Ctx) error {
 		return response.Response(c, http.StatusBadRequest, "invalid input", nil, err.Error())
 	}
 
-
 	if err := h.svc.UpdateProduct(c.Context(), uint(id), &req); err != nil {
 		return response.Response(c, http.StatusInternalServerError, "failed to update product", nil, err.Error())
 	}
@@ -218,6 +217,20 @@ func (h *AdminHandler) GetAllOrders(c *fiber.Ctx) error {
 	}
 
 	return response.Response(c, fiber.StatusOK, "get Order successfully", allorders, nil)
+}
+
+func (h *AdminHandler) GetOrderDetails(c *fiber.Ctx) error {
+	orderID, err := c.ParamsInt("id")
+	if err != nil || orderID <= 0 {
+		return response.Response(c, http.StatusBadRequest, "invalid order id", nil, nil)
+	}
+
+	orderItems, err := h.svc.GetOrderDetails(c.Context(), uint(orderID))
+	if err != nil {
+		return response.Response(c, http.StatusInternalServerError, "failed to get order details", nil, err.Error())
+	}
+
+	return response.Response(c, http.StatusOK, "Order details fetched successfully", orderItems, nil)
 }
 
 func (h *AdminHandler) UpdateOrdersStatus(c *fiber.Ctx) error {

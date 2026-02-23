@@ -37,6 +37,7 @@ type AdminUseCase interface {
 	Production(ctx context.Context, status string) ([]domain.Product, error)
 	UpdateStatus(ctx context.Context, id uint, status string) error
 	GetAllOrders(ctx context.Context) ([]domain.Order, error)
+	GetOrderDetails(ctx context.Context, orderID uint) ([]domain.OrderItem, error)
 	UpdateOrderStatus(ctx context.Context, orderID uint, status string) error
 	SearchProducts(ctx context.Context, query string) ([]domain.Product, error)
 	SearchUsers(ctx context.Context, query string) ([]domain.User, error)
@@ -292,6 +293,10 @@ func (s *adminUseCase) UpdateStatus(ctx context.Context, id uint, status string)
 
 func (s *adminUseCase) GetAllOrders(ctx context.Context) ([]domain.Order, error) {
 	return s.oredersRepo.GetAllOrders(ctx)
+}
+
+func (s *adminUseCase) GetOrderDetails(ctx context.Context, orderID uint) ([]domain.OrderItem, error) {
+	return s.oredersRepo.GetOrdersByOrderID(ctx, orderID)
 }
 
 func (s *adminUseCase) UpdateOrderStatus(ctx context.Context, orderID uint, status string) error {

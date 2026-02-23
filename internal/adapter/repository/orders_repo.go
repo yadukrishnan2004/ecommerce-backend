@@ -10,11 +10,16 @@ import (
 
 type Order struct {
 	gorm.Model
-	UserID      uint    `json:"user_id"`
-	User        User    `json:"user" gorm:"foreignKey:UserID;references:ID"`
-	Status      string  `json:"status" gorm:"default:pending"`
-	Quantity    uint    `json:"quantity"`
-	TotalAmount float64 `json:"total"`
+	UserID            uint           `json:"user_id"`
+	User              User           `json:"user" gorm:"foreignKey:UserID;references:ID"`
+	AddressID         uint           `json:"address_id"`
+	Address           domain.Address `json:"address" gorm:"foreignKey:AddressID;references:ID"`
+	Status            string         `json:"status" gorm:"default:pending"`
+	Quantity          uint           `json:"quantity"`
+	TotalAmount       float64        `json:"total"`
+	PaymentMethod     string         `json:"payment_method"`
+	RazorpayOrderID   string         `json:"razorpay_order_id"`
+	RazorpayPaymentID string         `json:"razorpay_payment_id"`
 }
 
 type OrderItem struct {
@@ -34,12 +39,17 @@ type OrderItem struct {
 
 func (o *Order) ToDomain() domain.Order {
 	return domain.Order{
-		ID:          o.ID,
-		UserID:      o.UserID,
-		User:        *o.User.ToDomain(),
-		Status:      o.Status,
-		Quantity:    o.Quantity,
-		TotalAmount: o.TotalAmount,
+		ID:                o.ID,
+		UserID:            o.UserID,
+		User:              *o.User.ToDomain(),
+		AddressID:         o.AddressID,
+		Address:           o.Address,
+		Status:            o.Status,
+		Quantity:          o.Quantity,
+		TotalAmount:       o.TotalAmount,
+		PaymentMethod:     o.PaymentMethod,
+		RazorpayOrderID:   o.RazorpayOrderID,
+		RazorpayPaymentID: o.RazorpayPaymentID,
 	}
 }
 
@@ -73,7 +83,7 @@ func NewOrderRepo(db *gorm.DB) domain.OrderRepository {
 	return &orderRepo{db: db}
 }
 
-func (r *orderRepo) CreateOrder(ctx context.Context, userid uint, Orders []domain.OrderItem) error {
+func (r *orderRepo) CreateOrder(ctx context.Context, userid uint, addressID uint, Orders []domain.OrderItem, paymentMethod, razorpayOrderID, razorpayPaymentID string) error {
 
 	var totalPrice float64
 	for _, Orderss := range Orders {
@@ -86,10 +96,14 @@ func (r *orderRepo) CreateOrder(ctx context.Context, userid uint, Orders []domai
 
 	tx := r.db.WithContext(ctx).Begin()
 	dbOrder := Order{
-		UserID:      userid,
-		Status:      "pending",
-		Quantity:    uint(len(Orders)),
-		TotalAmount: grandTotal,
+		UserID:            userid,
+		AddressID:         addressID,
+		Status:            "pending",
+		Quantity:          uint(len(Orders)),
+		TotalAmount:       grandTotal,
+		PaymentMethod:     paymentMethod,
+		RazorpayOrderID:   razorpayOrderID,
+		RazorpayPaymentID: razorpayPaymentID,
 	}
 
 	if err := tx.Create(&dbOrder).Error; err != nil {
@@ -140,6 +154,7 @@ func (r *orderRepo) GetAllOrders(ctx context.Context) ([]domain.Order, error) {
 
 	err := r.db.WithContext(ctx).
 		Preload("User").
+		Preload("Address").
 		Order("created_at desc").
 		Find(&dbOrders).Error
 
@@ -160,6 +175,8 @@ func (r *orderRepo) GetAllOrdersByUserID(ctx context.Context, userID uint) ([]do
 
 	err := r.db.WithContext(ctx).
 		Where("user_id = ?", userID).
+		Preload("User").
+		Preload("Address").
 		Order("created_at desc").
 		Find(&dbOrders).Error
 
@@ -178,7 +195,8 @@ func (r *orderRepo) GetOrdersByOrderID(ctx context.Context, OrderID uint) ([]dom
 	var dbOrderItems []OrderItem
 	err := r.db.WithContext(ctx).
 		Preload("Product").
-		Preload("Order").
+		Preload("Order.User").
+		Preload("Order.Address").
 		Where("order_id = ?", OrderID).
 		Order("created_at desc").
 		Find(&dbOrderItems).Error
@@ -276,4 +294,8 @@ func (r *orderRepo) GetOrderCountsByStatus(ctx context.Context) ([]domain.Status
 		return nil, err
 	}
 	return counts, nil
+}
+
+func (r *orderRepo) UpdateStatusByRazorpayOrderID(ctx context.Context, razorpayOrderID string, status string) error {
+	return r.db.WithContext(ctx).Model(&Order{}).Where("razorpay_order_id = ?", razorpayOrderID).Update("status", status).Error
 }
