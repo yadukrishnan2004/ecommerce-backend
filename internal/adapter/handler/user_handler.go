@@ -109,7 +109,7 @@ func (h *UserHandler) SignIn(c *fiber.Ctx) error {
 		return response.Response(c, http.StatusBadRequest, "password contains invalid characters", nil, "invalid password")
 	}
 
-	userdata, token, err := h.svc.SignIn(c.Context(), request.Email, request.Password)
+	userdata, rtoken,token, err := h.svc.SignIn(c.Context(), request.Email, request.Password)
 	if err != nil {
 		return response.Response(c, http.StatusUnauthorized, "user not found", request, err.Error())
 	}
@@ -125,6 +125,20 @@ func (h *UserHandler) SignIn(c *fiber.Ctx) error {
 
 	c.Cookie(&cookie)
 
+	refresh := fiber.Cookie{
+		Name:     "refresh",
+		Value:    rtoken,
+		Expires:  time.Now().Add(24 * time.Minute),
+		HTTPOnly: true,
+		Secure:   false,
+		SameSite: "Lax",
+	}
+
+	c.Cookie(&cookie)
+	c.Cookie(&refresh)
+
+
+
 	return response.Response(c, http.StatusOK, "login successful", userdata, nil)
 }
 
@@ -137,6 +151,14 @@ func (h *UserHandler) Logout(c *fiber.Ctx) error {
 	}
 
 	c.Cookie(&cookie)
+	refresh := fiber.Cookie{
+		Name:     "refresh",
+		Value:    "",
+		Expires:  time.Now().Add(-time.Hour),
+		HTTPOnly: true,
+	}
+
+	c.Cookie(&refresh)
 
 	return response.Response(c, http.StatusOK, "logged out successfully", nil, nil)
 }

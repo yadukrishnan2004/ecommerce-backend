@@ -32,7 +32,7 @@ type UserProfileOutput struct {
 type UserUseCase interface {
 	SignUp(ctx context.Context, name, email, password string) (string, error)
 	VerifyOtp(ctx context.Context, email, code string) (string, error)
-	SignIn(ctx context.Context, email, password string) (*UserProfileOutput, string, error)
+	SignIn(ctx context.Context, email, password string) (*UserProfileOutput, string, string, error)
 	ForgotPassword(ctx context.Context, email string) (string, error)
 	ResetPassword(ctx context.Context, email, code, newPassword string) error
 	UpdateProfile(ctx context.Context, userID uint, input UpdateUserInput) error
@@ -151,19 +151,19 @@ func (s *userUseCase) VerifyOtp(ctx context.Context, email, code string) (string
 	return token, nil
 }
 
-func (s *userUseCase) SignIn(ctx context.Context, email, password string) (*UserProfileOutput, string, error) {
+func (s *userUseCase) SignIn(ctx context.Context, email, password string) (*UserProfileOutput, string, string, error) {
 	user, err := s.repo.GetByEmail(ctx, email)
 
 	if err != nil {
-		return nil, "", errors.New("invalid email or password")
+		return nil, "","", errors.New("invalid email or password")
 	}
 
 	if !user.IsActive {
-		return nil, "", errors.New("account not verified")
+		return nil, "","", errors.New("account not verified")
 	}
 
 	if err := helper.VerifyHash(user.Password, password); !err {
-		return nil, "", errors.New("invalid email or password")
+		return nil, "","", errors.New("invalid email or password")
 	}
 	addre, _ := s.address.GetByUserID(ctx, user.ID)
 	cart, _ := s.cart.GetCart(ctx, user.ID)
@@ -188,10 +188,13 @@ func (s *userUseCase) SignIn(ctx context.Context, email, password string) (*User
 
 	acc, erro := s.jwt.GenerateToken(user.ID, s.jwt.AccessTTL, user.Role)
 	if erro != nil {
-		return nil, "", erro
+		return nil,"", "", erro
 	}
-	// fmt.Println("user",userdata,"acc",acc)
-	return &userdata, acc, nil
+	refresh, erro := s.jwt.GenerateToken(user.ID, s.jwt.RefreshTTL, user.Role)
+	if erro != nil {
+		return nil,"","", erro
+	}
+	return &userdata, refresh, acc, nil
 }
 
 func (s *userUseCase) ForgotPassword(ctx context.Context, email string) (string, error) {
