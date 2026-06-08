@@ -40,10 +40,10 @@ type UserUseCase interface {
 	GetProduct(ctx context.Context, id uint) (*domain.Product, error)
 	GetOrderDetail(ctx context.Context, orderID, userID uint) ([]domain.Order, error)
 	CancelOrder(ctx context.Context, orderID, userID uint) error
-	GetAllProducts(ctx context.Context) ([]domain.Product, error)
-	SearchProducts(ctx context.Context, query string) ([]domain.Product, error)
+	GetAllProducts(ctx context.Context, limit, offset int) ([]domain.Product, error)
+	SearchProducts(ctx context.Context, query string, limit, offset int) ([]domain.Product, error)
 	FilterProducts(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error)
-	GetOrderItemDetails(ctx context.Context, orderID uint) ([]domain.OrderItem, error)
+	GetOrderItemDetails(ctx context.Context, orderID, userID uint) ([]domain.OrderItem, error)
 }
 
 type userUseCase struct {
@@ -162,20 +162,23 @@ func (s *userUseCase) SignIn(ctx context.Context, email, password string) (*User
 		return nil, "","", errors.New("account not verified")
 	}
 
+	if user.IsBlocked {
+		return nil, "", "", errors.New("your account has been blocked by the admin")
+	}
+
 	if err := helper.VerifyHash(user.Password, password); !err {
 		return nil, "","", errors.New("invalid email or password")
 	}
 	addre, _ := s.address.GetByUserID(ctx, user.ID)
 	cart, _ := s.cart.GetCart(ctx, user.ID)
 	wish, _ := s.wishlist.GetAll(ctx, user.ID)
-	order, _ := s.orders.GetAllOrdersByUserID(ctx, user.ID)
+	order, _ := s.orders.GetAllOrdersByUserID(ctx, user.ID, 0, 0)
 
-	var orderitems []domain.OrderItem
-
+	var orderIDs []uint
 	for _, ord := range order {
-		o, _ := s.orders.GetOrdersByOrderID(ctx, ord.ID)
-		orderitems = append(orderitems, o...)
+		orderIDs = append(orderIDs, ord.ID)
 	}
+	orderitems, _ := s.orders.GetOrderItemsByOrderIDs(ctx, orderIDs)
 	userdata := UserProfileOutput{
 		Name:     user.Name,
 		Email:    user.Email,
@@ -261,14 +264,13 @@ func (s *userUseCase) GetProfile(ctx context.Context, userID uint) (*UserProfile
 	addre, _ := s.address.GetByUserID(ctx, users.ID)
 	cart, _ := s.cart.GetCart(ctx, users.ID)
 	wish, _ := s.wishlist.GetAll(ctx, users.ID)
-	order, _ := s.orders.GetAllOrdersByUserID(ctx, users.ID)
+	order, _ := s.orders.GetAllOrdersByUserID(ctx, users.ID, 0, 0)
 
-	var orderitems []domain.OrderItem
-
+	var orderIDs []uint
 	for _, ord := range order {
-		o, _ := s.orders.GetOrdersByOrderID(ctx, ord.ID)
-		orderitems = append(orderitems, o...)
+		orderIDs = append(orderIDs, ord.ID)
 	}
+	orderitems, _ := s.orders.GetOrderItemsByOrderIDs(ctx, orderIDs)
 	userdata := UserProfileOutput{
 		Name:      users.Name,
 		Email:     users.Email,
@@ -296,8 +298,17 @@ func (s *userUseCase) GetProduct(
 func (s *userUseCase) GetOrderDetail(ctx context.Context, orderID, userID uint) ([]domain.Order, error) {
 	return s.orders.GetOrdersByUserIDAndOrderID(ctx, userID, orderID)
 }
-func (s *userUseCase) GetOrderItemDetails(ctx context.Context, orderID uint) ([]domain.OrderItem, error) {
-	return s.orders.GetOrdersByOrderID(ctx, orderID)
+func (s *userUseCase) GetOrderItemDetails(ctx context.Context, orderID, userID uint) ([]domain.OrderItem, error) {
+	items, err := s.orders.GetOrdersByOrderID(ctx, orderID)
+	if err != nil {
+		return nil, err
+	}
+	if len(items) > 0 {
+		if items[0].Order.UserID != userID {
+			return nil, errors.New("unauthorized")
+		}
+	}
+	return items, nil
 }
 
 func (s *userUseCase) CancelOrder(ctx context.Context, orderID, userID uint) error {
@@ -306,22 +317,23 @@ func (s *userUseCase) CancelOrder(ctx context.Context, orderID, userID uint) err
 
 func (s *userUseCase) GetAllProducts(
 	ctx context.Context,
+	limit, offset int,
 ) ([]domain.Product, error) {
 
-	product, err := s.productrepo.GetAll(ctx)
+	product, err := s.productrepo.GetAll(ctx, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	return product, nil
 }
 
-func (s *userUseCase) SearchProducts(ctx context.Context, query string) ([]domain.Product, error) {
+func (s *userUseCase) SearchProducts(ctx context.Context, query string, limit, offset int) ([]domain.Product, error) {
 	cleanQuery := strings.TrimSpace(query)
 
 	if cleanQuery == "" {
 		return []domain.Product{}, nil
 	}
-	return s.productrepo.Search(ctx, cleanQuery)
+	return s.productrepo.Search(ctx, cleanQuery, limit, offset)
 }
 
 func (s *userUseCase) FilterProducts(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error) {

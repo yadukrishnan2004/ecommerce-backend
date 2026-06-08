@@ -62,10 +62,18 @@ func (r *wishlistRepo) Add(ctx context.Context, item *domain.Wishlist) error {
 }
 
 func (r *wishlistRepo) Remove(ctx context.Context, userID, productID uint) error {
-	return r.db.WithContext(ctx).
+	result := r.db.WithContext(ctx).
 		Unscoped().
 		Where("user_id = ? AND product_id = ?", userID, productID).
-		Delete(&Wishlist{}).Error
+		Delete(&Wishlist{})
+
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("wish list don't have an item")
+	}
+	return nil
 }
 
 func (r *wishlistRepo) DeleteAll(ctx context.Context, userID uint) error {
@@ -81,9 +89,23 @@ func (r *wishlistRepo) GetAll(ctx context.Context, userID uint) ([]domain.Wishli
 
 	err := r.db.WithContext(ctx).
 		Table("wishlists").
-		Select("wishlists.id as wishlist_id, products.id as product_id, products.images, products.category, products.name, products.price, products.offer, products.offer_price, products.description, products.stock, products.production").
+		Select(`
+			wishlists.id as wishlist_id, 
+			products.id as product_id, 
+			COALESCE(array_agg(product_images.image_url) FILTER (WHERE product_images.image_url IS NOT NULL), '{}') as images, 
+			products.category, 
+			products.name, 
+			products.price, 
+			products.offer, 
+			products.offer_price, 
+			products.description, 
+			products.stock, 
+			products.production
+		`).
 		Joins("JOIN products ON products.id = wishlists.product_id").
+		Joins("LEFT JOIN product_images ON product_images.product_id = products.id").
 		Where("wishlists.user_id = ? AND wishlists.deleted_at IS NULL", userID).
+		Group("wishlists.id, products.id").
 		Scan(&items).Error
 
 	return items, err

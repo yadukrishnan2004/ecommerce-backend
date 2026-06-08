@@ -39,12 +39,15 @@ func ConnectDB(cfg *config.Config) *gorm.DB {
 	if err := db.AutoMigrate(
 		&repository.User{},
 		&repository.SignupRequest{},
+		&repository.Category{},
+		&repository.ProductImage{},
 		&repository.Product{},
 		&repository.CartItem{},
 		&repository.Wishlist{},
+		&repository.PostalCode{},
+		&repository.Address{},
 		&repository.Order{},
 		&repository.OrderItem{},
-		&repository.Address{},
 	); err != nil {
 		log.Fatalf("Failed to auto migrate: %v", err)
 	}

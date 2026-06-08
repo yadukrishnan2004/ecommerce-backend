@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler/dto"
@@ -51,7 +52,17 @@ func (h *OrderHandler) GetOrderHistory(c *fiber.Ctx) error {
 		return response.Response(c, fiber.StatusUnauthorized, "no user found", nil, nil)
 	}
 
-	orders, err := h.svc.GetOrderHistory(c.Context(), uint(userIDFloat))
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "10"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	orders, err := h.svc.GetOrderHistory(c.Context(), uint(userIDFloat), limit, offset)
 	if err != nil {
 		return response.Response(c, fiber.StatusBadRequest, "server", nil, err.Error())
 	}

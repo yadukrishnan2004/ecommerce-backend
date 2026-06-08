@@ -4,9 +4,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/middleware"
+	"gorm.io/gorm"
 )
 
-func SetUpUserRouter(api fiber.Router, userH *handler.UserHandler) {
+func SetUpUserRouter(api fiber.Router, db *gorm.DB, userH *handler.UserHandler) {
 
 	userRoutes := api.Group("/users")
 
@@ -30,7 +31,7 @@ func SetUpUserRouter(api fiber.Router, userH *handler.UserHandler) {
 	// AUTHENTICATED ROUTES (JWT Required)
 
 	protected := userRoutes.Group("/")
-	protected.Use(middleware.UserMiddleware)
+	protected.Use(middleware.UserMiddleware(db))
 
 	{
 		protected.Post("/logout", userH.Logout)

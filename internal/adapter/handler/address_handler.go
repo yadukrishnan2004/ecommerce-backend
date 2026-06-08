@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/pkg"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/usecase"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/utils/response"
 )
@@ -26,6 +27,10 @@ func (h *AddressHandler) AddAddress(c *fiber.Ctx) error {
 	var address domain.Address
 	if err := c.BodyParser(&address); err != nil {
 		return response.Response(c, http.StatusBadRequest, "invalid input", address, err.Error())
+	}
+
+	if err := pkg.Validate.Struct(&address); err != nil {
+		return response.Response(c, http.StatusBadRequest, "invalid request fields", address, err.Error())
 	}
 
 	address.UserID = uint(userIDFloat)

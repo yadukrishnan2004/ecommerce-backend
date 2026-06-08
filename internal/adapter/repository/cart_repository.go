@@ -98,7 +98,7 @@ func (r *cartRepo) GetCart(
 			cart_items.id AS cart_id,
 			cart_items.quantity,
 			products.id AS product_id,
-			products.images AS image,
+			COALESCE(array_agg(product_images.image_url) FILTER (WHERE product_images.image_url IS NOT NULL), '{}') AS image,
 			products.name,
 			products.price,
 			products.offer,
@@ -107,7 +107,9 @@ func (r *cartRepo) GetCart(
 			products.stock
 		`).
 		Joins("JOIN products ON products.id = cart_items.product_id").
+		Joins("LEFT JOIN product_images ON product_images.product_id = products.id").
 		Where("cart_items.user_id = ?", userID).
+		Group("cart_items.id, products.id").
 		Scan(&result).Error
 
 	if err != nil {

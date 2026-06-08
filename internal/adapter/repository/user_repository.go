@@ -117,15 +117,24 @@ func (r *userRepo) Delete(ctx context.Context, userID uint) error {
 	return r.db.WithContext(ctx).Delete(&User{}, userID).Error
 }
 
-func (r *userRepo) SearchUsers(ctx context.Context, query string) ([]domain.User, error) {
+func (r *userRepo) SearchUsers(ctx context.Context, query string, limit, offset int) ([]domain.User, error) {
 	var users []User
 
 	searchPattern := "%" + query + "%"
 
-	err := r.db.WithContext(ctx).
-		Where("name ILIKE ? OR email ILIKE ?", searchPattern, searchPattern).
-		Limit(20).
-		Find(&users).Error
+	dbQuery := r.db.WithContext(ctx).
+		Where("name ILIKE ? OR email ILIKE ?", searchPattern, searchPattern)
+
+	if limit > 0 {
+		dbQuery = dbQuery.Limit(limit)
+	} else {
+		dbQuery = dbQuery.Limit(20)
+	}
+	if offset > 0 {
+		dbQuery = dbQuery.Offset(offset)
+	}
+
+	err := dbQuery.Find(&users).Error
 
 	if err != nil {
 		return nil, err
@@ -202,12 +211,20 @@ func (r *userRepo) DeleteSignup(ctx context.Context, email string) error {
 	return r.db.WithContext(ctx).Where("email = ?", email).Delete(&SignupRequest{}).Error
 }
 
-func (r *userRepo) GetAllUsers(ctx context.Context) ([]domain.User, error) {
+func (r *userRepo) GetAllUsers(ctx context.Context, limit, offset int) ([]domain.User, error) {
 	var users []User
 
-	err := r.db.WithContext(ctx).
-		Order("created_at desc").
-		Find(&users).Error
+	dbQuery := r.db.WithContext(ctx).
+		Order("created_at desc")
+
+	if limit > 0 {
+		dbQuery = dbQuery.Limit(limit)
+	}
+	if offset > 0 {
+		dbQuery = dbQuery.Offset(offset)
+	}
+
+	err := dbQuery.Find(&users).Error
 	if err != nil {
 		return nil, err
 	}

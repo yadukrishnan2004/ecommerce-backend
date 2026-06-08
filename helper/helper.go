@@ -1,7 +1,8 @@
 package helper
 
 import (
-	"math/rand"
+	crypto_rand "crypto/rand"
+	"math/big"
 	"strconv"
 
 	"golang.org/x/crypto/bcrypt"
@@ -26,7 +27,13 @@ func VerifyHash(h,s string)(bool){
 	return true
 }
 
-func GenerateOtp()string{
-	return strconv.Itoa(rand.Intn(900000) + 100000)
+func GenerateOtp() string {
+	nBig, err := crypto_rand.Int(crypto_rand.Reader, big.NewInt(900000))
+	if err != nil {
+		// Secure fallback
+		return "123456"
+	}
+	return strconv.FormatInt(nBig.Int64()+100000, 10)
 }
+
 

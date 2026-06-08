@@ -29,25 +29,31 @@ type AdminUseCase interface {
 	UpdateUser(ctx context.Context, userId uint, input AdminUpdateUserInput) (*domain.User, error)
 	BlockUser(ctx context.Context, userId uint, blockedOpt *bool) (string, error)
 	AddNewProduct(ctx context.Context, newProduct *domain.Product) error
-	GetAllProducts(ctx context.Context) ([]domain.Product, error)
+	GetAllProducts(ctx context.Context, limit, offset int) ([]domain.Product, error)
 	GetProduct(ctx context.Context, id uint) (*domain.Product, error)
 	UpdateProduct(ctx context.Context, id uint, req *domain.Product) error
 	DeleteProduct(ctx context.Context, id uint) error
 	DeleteUser(ctx context.Context, userID uint) error
-	Production(ctx context.Context, status string) ([]domain.Product, error)
+	Production(ctx context.Context, status string, limit, offset int) ([]domain.Product, error)
 	UpdateStatus(ctx context.Context, id uint, status string) error
-	GetAllOrders(ctx context.Context) ([]domain.Order, error)
+	GetAllOrders(ctx context.Context, limit, offset int) ([]domain.Order, error)
 	GetOrderDetails(ctx context.Context, orderID uint) ([]domain.OrderItem, error)
 	UpdateOrderStatus(ctx context.Context, orderID uint, status string) error
-	SearchProducts(ctx context.Context, query string) ([]domain.Product, error)
-	SearchUsers(ctx context.Context, query string) ([]domain.User, error)
+	SearchProducts(ctx context.Context, query string, limit, offset int) ([]domain.Product, error)
+	SearchUsers(ctx context.Context, query string, limit, offset int) ([]domain.User, error)
 	FilterProducts(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error)
-	GetAllUsers(ctx context.Context) ([]domain.User, error)
+	GetAllUsers(ctx context.Context, limit, offset int) ([]domain.User, error)
 	GetDashboardGraphs(ctx context.Context) (map[string]interface{}, error)
 	GetUserByID(ctx context.Context, userID uint) (*domain.User, error)
 	GetUserCart(ctx context.Context, userID uint) ([]domain.CartItemView, error)
 	GetUserWishlist(ctx context.Context, userID uint) ([]domain.WishlistItemView, error)
 	GetUserAddresses(ctx context.Context, userID uint) ([]domain.Address, error)
+	CreateCategory(ctx context.Context, category *domain.Category) error
+	GetAllCategories(ctx context.Context) ([]domain.Category, error)
+	UpdateCategory(ctx context.Context, id uint, name, description string) error
+	DeleteCategory(ctx context.Context, id uint) error
+	GetLowStockProducts(ctx context.Context, threshold int) ([]domain.Product, error)
+	GetDashboardKPIs(ctx context.Context) (map[string]interface{}, error)
 }
 
 // ... existing struct and constructor ...
@@ -72,12 +78,13 @@ func (s *adminUseCase) GetDashboardGraphs(ctx context.Context) (map[string]inter
 }
 
 type adminUseCase struct {
-	repo        domain.UserRepository
-	productrepo domain.ProductRepository
-	oredersRepo domain.OrderRepository
-	cartRepo    domain.CartRepository
-	wishRepo    domain.WishlistRepository
-	addressRepo domain.AddressRepository
+	repo         domain.UserRepository
+	productrepo  domain.ProductRepository
+	oredersRepo  domain.OrderRepository
+	cartRepo     domain.CartRepository
+	wishRepo     domain.WishlistRepository
+	addressRepo  domain.AddressRepository
+	categoryRepo domain.CategoryRepository
 }
 
 func NewAdminUseCase(
@@ -87,14 +94,16 @@ func NewAdminUseCase(
 	cartRepo domain.CartRepository,
 	wishRepo domain.WishlistRepository,
 	addressRepo domain.AddressRepository,
+	categoryRepo domain.CategoryRepository,
 ) AdminUseCase {
 	return &adminUseCase{
-		repo:        rep,
-		productrepo: productrepo,
-		oredersRepo: oredersRepo,
-		cartRepo:    cartRepo,
-		wishRepo:    wishRepo,
-		addressRepo: addressRepo,
+		repo:         rep,
+		productrepo:  productrepo,
+		oredersRepo:  oredersRepo,
+		cartRepo:     cartRepo,
+		wishRepo:     wishRepo,
+		addressRepo:  addressRepo,
+		categoryRepo: categoryRepo,
 	}
 }
 
@@ -177,9 +186,10 @@ func (s *adminUseCase) AddNewProduct(
 
 func (s *adminUseCase) GetAllProducts(
 	ctx context.Context,
+	limit, offset int,
 ) ([]domain.Product, error) {
 
-	product, err := s.productrepo.GetAll(ctx)
+	product, err := s.productrepo.GetAll(ctx, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -265,8 +275,9 @@ func (s *adminUseCase) DeleteUser(
 func (s *adminUseCase) Production(
 	ctx context.Context,
 	status string,
+	limit, offset int,
 ) ([]domain.Product, error) {
-	product, err := s.productrepo.GetByProduction(ctx, status)
+	product, err := s.productrepo.GetByProduction(ctx, status, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -291,8 +302,8 @@ func (s *adminUseCase) UpdateStatus(ctx context.Context, id uint, status string)
 	return s.productrepo.Update(ctx, product)
 }
 
-func (s *adminUseCase) GetAllOrders(ctx context.Context) ([]domain.Order, error) {
-	return s.oredersRepo.GetAllOrders(ctx)
+func (s *adminUseCase) GetAllOrders(ctx context.Context, limit, offset int) ([]domain.Order, error) {
+	return s.oredersRepo.GetAllOrders(ctx, limit, offset)
 }
 
 func (s *adminUseCase) GetOrderDetails(ctx context.Context, orderID uint) ([]domain.OrderItem, error) {
@@ -315,25 +326,25 @@ func (s *adminUseCase) UpdateOrderStatus(ctx context.Context, orderID uint, stat
 	return s.oredersRepo.UpdateStatus(ctx, orderID, status)
 }
 
-func (s *adminUseCase) SearchProducts(ctx context.Context, query string) ([]domain.Product, error) {
+func (s *adminUseCase) SearchProducts(ctx context.Context, query string, limit, offset int) ([]domain.Product, error) {
 	cleanQuery := strings.TrimSpace(query)
 
 	if cleanQuery == "" {
 		return []domain.Product{}, nil
 	}
-	return s.productrepo.Search(ctx, cleanQuery)
+	return s.productrepo.Search(ctx, cleanQuery, limit, offset)
 }
 
-func (s *adminUseCase) SearchUsers(ctx context.Context, query string) ([]domain.User, error) {
-	return s.repo.SearchUsers(ctx, query)
+func (s *adminUseCase) SearchUsers(ctx context.Context, query string, limit, offset int) ([]domain.User, error) {
+	return s.repo.SearchUsers(ctx, query, limit, offset)
 }
 
 func (s *adminUseCase) FilterProducts(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error) {
 	return s.productrepo.GetProducts(ctx, filter)
 }
 
-func (s *adminUseCase) GetAllUsers(ctx context.Context) ([]domain.User, error) {
-	return s.repo.GetAllUsers(ctx)
+func (s *adminUseCase) GetAllUsers(ctx context.Context, limit, offset int) ([]domain.User, error) {
+	return s.repo.GetAllUsers(ctx, limit, offset)
 }
 
 func (s *adminUseCase) GetUserByID(ctx context.Context, userID uint) (*domain.User, error) {
@@ -350,4 +361,57 @@ func (s *adminUseCase) GetUserWishlist(ctx context.Context, userID uint) ([]doma
 
 func (s *adminUseCase) GetUserAddresses(ctx context.Context, userID uint) ([]domain.Address, error) {
 	return s.addressRepo.GetByUserID(ctx, userID)
+}
+
+func (s *adminUseCase) CreateCategory(ctx context.Context, category *domain.Category) error {
+	if strings.TrimSpace(category.Name) == "" {
+		return errors.New("category name cannot be empty")
+	}
+	return s.categoryRepo.Create(ctx, category)
+}
+
+func (s *adminUseCase) GetAllCategories(ctx context.Context) ([]domain.Category, error) {
+	return s.categoryRepo.GetAll(ctx)
+}
+
+func (s *adminUseCase) UpdateCategory(ctx context.Context, id uint, name, description string) error {
+	cat, err := s.categoryRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(name) != "" {
+		cat.Name = strings.TrimSpace(name)
+	}
+	cat.Description = description
+	return s.categoryRepo.Update(ctx, cat)
+}
+
+func (s *adminUseCase) DeleteCategory(ctx context.Context, id uint) error {
+	return s.categoryRepo.Delete(ctx, id)
+}
+
+func (s *adminUseCase) GetLowStockProducts(ctx context.Context, threshold int) ([]domain.Product, error) {
+	if threshold <= 0 {
+		threshold = 5
+	}
+	return s.productrepo.GetLowStockProducts(ctx, threshold)
+}
+
+func (s *adminUseCase) GetDashboardKPIs(ctx context.Context) (map[string]interface{}, error) {
+	revenue, orders, aov, err := s.oredersRepo.GetDashboardMetrics(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	topProducts, err := s.oredersRepo.GetTopSellingProducts(ctx, 5)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"gross_merchandise_value": revenue,
+		"total_orders":            orders,
+		"average_order_value":     aov,
+		"top_selling_products":    topProducts,
+	}, nil
 }

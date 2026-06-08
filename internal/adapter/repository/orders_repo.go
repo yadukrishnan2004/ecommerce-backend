@@ -13,13 +13,13 @@ type Order struct {
 	UserID            uint           `json:"user_id"`
 	User              User           `json:"user" gorm:"foreignKey:UserID;references:ID"`
 	AddressID         uint           `json:"address_id"`
-	Address           domain.Address `json:"address" gorm:"foreignKey:AddressID;references:ID"`
+	Address           Address        `json:"address" gorm:"foreignKey:AddressID;references:ID"`
 	Status            string         `json:"status" gorm:"default:pending"`
-	Quantity          uint           `json:"quantity"`
 	TotalAmount       float64        `json:"total"`
 	PaymentMethod     string         `json:"payment_method"`
 	RazorpayOrderID   string         `json:"razorpay_order_id"`
 	RazorpayPaymentID string         `json:"razorpay_payment_id"`
+	Items             []OrderItem    `gorm:"foreignKey:OrderId"`
 }
 
 type OrderItem struct {
@@ -28,51 +28,11 @@ type OrderItem struct {
 	OrderId uint
 	Order   Order `gorm:"foreignkey:OrderId;references:ID"`
 
-	Image string
-
 	ProductId uint
 	Product   Product `gorm:"foreignkey:ProductId;references:ID"`
 
 	Quantity uint
 	Price    float64
-}
-
-func (o *Order) ToDomain() domain.Order {
-	return domain.Order{
-		ID:                o.ID,
-		UserID:            o.UserID,
-		User:              *o.User.ToDomain(),
-		AddressID:         o.AddressID,
-		Address:           o.Address,
-		Status:            o.Status,
-		Quantity:          o.Quantity,
-		TotalAmount:       o.TotalAmount,
-		PaymentMethod:     o.PaymentMethod,
-		RazorpayOrderID:   o.RazorpayOrderID,
-		RazorpayPaymentID: o.RazorpayPaymentID,
-	}
-}
-
-func (oi *OrderItem) ToDomain() domain.OrderItem {
-	return domain.OrderItem{
-		OrderId:   oi.OrderId,
-		Order:     oi.Order.ToDomain(),
-		Image:     oi.Image,
-		ProductId: oi.ProductId,
-		Product:   *oi.Product.ToDomain(),
-		Quantity:  oi.Quantity,
-		Price:     oi.Price,
-	}
-}
-
-func FromDomainOrderItem(oi domain.OrderItem) OrderItem {
-	return OrderItem{
-		OrderId:   oi.OrderId,
-		Image:     oi.Image,
-		ProductId: oi.ProductId,
-		Quantity:  oi.Quantity,
-		Price:     oi.Price,
-	}
 }
 
 type orderRepo struct {
@@ -84,7 +44,6 @@ func NewOrderRepo(db *gorm.DB) domain.OrderRepository {
 }
 
 func (r *orderRepo) CreateOrder(ctx context.Context, userid uint, addressID uint, Orders []domain.OrderItem, paymentMethod, razorpayOrderID, razorpayPaymentID string) error {
-
 	var totalPrice float64
 	for _, Orderss := range Orders {
 		totalPrice += float64(Orderss.Price)
@@ -95,11 +54,21 @@ func (r *orderRepo) CreateOrder(ctx context.Context, userid uint, addressID uint
 	grandTotal := totalPrice + shipping + tax
 
 	tx := r.db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	status := "Pending"
+	if paymentMethod == "COD" {
+		status = "Placed"
+	}
+
 	dbOrder := Order{
 		UserID:            userid,
 		AddressID:         addressID,
-		Status:            "pending",
-		Quantity:          uint(len(Orders)),
+		Status:            status,
 		TotalAmount:       grandTotal,
 		PaymentMethod:     paymentMethod,
 		RazorpayOrderID:   razorpayOrderID,
@@ -123,94 +92,28 @@ func (r *orderRepo) CreateOrder(ctx context.Context, userid uint, addressID uint
 		return err
 	}
 
+	for _, item := range Orders {
+		var product Product
+		if err := tx.Set("gorm:query_option", "FOR UPDATE").Where("id = ?", item.ProductId).First(&product).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+		if product.Stock < item.Quantity {
+			tx.Rollback()
+			return errors.New("insufficient stock for product " + product.Name)
+		}
+		if err := tx.Model(&Product{}).Where("id = ?", item.ProductId).Update("stock", gorm.Expr("stock - ?", item.Quantity)).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	if err := tx.Where("user_id = ?", dbOrder.UserID).Delete(&CartItem{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	return tx.Commit().Error
-}
-
-func (r *orderRepo) GetOrdersByUserIDAndOrderID(ctx context.Context, userID, OrderID uint) ([]domain.Order, error) {
-	var dbOrders []Order
-	err := r.db.WithContext(ctx).
-		Where("user_id = ? AND id = ?", userID, OrderID).
-		Order("created_at desc").
-		Find(&dbOrders).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	var orders []domain.Order
-	for _, o := range dbOrders {
-		orders = append(orders, o.ToDomain())
-	}
-	return orders, nil
-}
-
-func (r *orderRepo) GetAllOrders(ctx context.Context) ([]domain.Order, error) {
-	var dbOrders []Order
-
-	err := r.db.WithContext(ctx).
-		Preload("User").
-		Preload("Address").
-		Order("created_at desc").
-		Find(&dbOrders).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	var orders []domain.Order
-	for _, o := range dbOrders {
-		orders = append(orders, o.ToDomain())
-	}
-
-	return orders, nil
-}
-
-func (r *orderRepo) GetAllOrdersByUserID(ctx context.Context, userID uint) ([]domain.Order, error) {
-	var dbOrders []Order
-
-	err := r.db.WithContext(ctx).
-		Where("user_id = ?", userID).
-		Preload("User").
-		Preload("Address").
-		Order("created_at desc").
-		Find(&dbOrders).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	var orders []domain.Order
-	for _, o := range dbOrders {
-		orders = append(orders, o.ToDomain())
-	}
-	return orders, nil
-}
-
-func (r *orderRepo) GetOrdersByOrderID(ctx context.Context, OrderID uint) ([]domain.OrderItem, error) {
-	var dbOrderItems []OrderItem
-	err := r.db.WithContext(ctx).
-		Preload("Product").
-		Preload("Order.User").
-		Preload("Order.Address").
-		Where("order_id = ?", OrderID).
-		Order("created_at desc").
-		Find(&dbOrderItems).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	var orderItems []domain.OrderItem
-	for _, item := range dbOrderItems {
-		orderItems = append(orderItems, item.ToDomain())
-	}
-
-	return orderItems, nil
 }
 
 func (r *orderRepo) UpdateStatus(ctx context.Context, orderID uint, status string) error {
@@ -239,7 +142,7 @@ func (r *orderRepo) CancelOrder(ctx context.Context, orderID, userID uint) error
 			return err
 		}
 
-		if dbOrder.Status != "Pending" {
+		if dbOrder.Status != "Pending" && dbOrder.Status != "Placed" {
 			return errors.New("order cannot be cancelled (already processed)")
 		}
 
@@ -262,38 +165,6 @@ func (r *orderRepo) CancelOrder(ctx context.Context, orderID, userID uint) error
 
 		return nil
 	})
-}
-
-func (r *orderRepo) GetTotalSalesByDate(ctx context.Context) ([]domain.SalesData, error) {
-	var sales []domain.SalesData
-	// PostgreSQL: TO_CHAR(created_at, 'YYYY-MM-DD')
-	err := r.db.WithContext(ctx).
-		Model(&Order{}).
-		Select("TO_CHAR(created_at, 'YYYY-MM-DD') as date, SUM(total_amount) as total").
-		Where("status = ?", "Delivered"). // Only count delivered/completed orders
-		Group("TO_CHAR(created_at, 'YYYY-MM-DD')").
-		Order("date asc").
-		Limit(30). // Last 30 days
-		Scan(&sales).Error
-
-	if err != nil {
-		return nil, err
-	}
-	return sales, nil
-}
-
-func (r *orderRepo) GetOrderCountsByStatus(ctx context.Context) ([]domain.StatusCount, error) {
-	var counts []domain.StatusCount
-	err := r.db.WithContext(ctx).
-		Model(&Order{}).
-		Select("status, count(*) as count").
-		Group("status").
-		Scan(&counts).Error
-
-	if err != nil {
-		return nil, err
-	}
-	return counts, nil
 }
 
 func (r *orderRepo) UpdateStatusByRazorpayOrderID(ctx context.Context, razorpayOrderID string, status string) error {

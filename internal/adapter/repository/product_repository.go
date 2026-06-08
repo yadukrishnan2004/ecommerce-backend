@@ -2,9 +2,10 @@ package repository
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"time"
 
-	"github.com/lib/pq"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/domain"
 	"gorm.io/gorm"
 )
@@ -13,9 +14,15 @@ type productRepo struct {
 	db *gorm.DB
 }
 
+type ProductImage struct {
+	gorm.Model
+	ProductID uint   `json:"product_id"`
+	ImageURL  string `json:"image_url"`
+}
+
 type Product struct {
 	gorm.Model
-	Images      pq.StringArray `json:"images" gorm:"type:text[]"`
+	Images      []ProductImage `json:"images" gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE;"`
 	Name        string         `json:"name" validate:"required"`
 	Price       float64        `json:"price" validate:"required"`
 	Description string         `json:"desc" validate:"required"`
@@ -27,6 +34,11 @@ type Product struct {
 }
 
 func (p *Product) ToDomain() *domain.Product {
+	var images []string
+	for _, img := range p.Images {
+		images = append(images, img.ImageURL)
+	}
+
 	return &domain.Product{
 		ID:        p.ID,
 		CreatedAt: p.CreatedAt,
@@ -37,7 +49,7 @@ func (p *Product) ToDomain() *domain.Product {
 			}
 			return nil
 		}(),
-		Images:      []string(p.Images),
+		Images:      images,
 		Name:        p.Name,
 		Price:       float64(p.Price),
 		Description: p.Description,
@@ -54,6 +66,12 @@ func fromDomainProduct(p *domain.Product) *Product {
 	if p.DeletedAt != nil {
 		deletedAt = gorm.DeletedAt{Time: *p.DeletedAt, Valid: true}
 	}
+
+	var images []ProductImage
+	for _, url := range p.Images {
+		images = append(images, ProductImage{ImageURL: url})
+	}
+
 	return &Product{
 		Model: gorm.Model{
 			ID:        p.ID,
@@ -61,7 +79,7 @@ func fromDomainProduct(p *domain.Product) *Product {
 			UpdatedAt: p.UpdatedAt,
 			DeletedAt: deletedAt,
 		},
-		Images:      pq.StringArray(p.Images),
+		Images:      images,
 		Name:        p.Name,
 		Price:       float64(p.Price),
 		Description: p.Description,
@@ -78,6 +96,14 @@ func NewProductRepo(db *gorm.DB) domain.ProductRepository {
 }
 
 func (r *productRepo) Create(ctx context.Context, product *domain.Product) error {
+	var catCount int64
+	if err := r.db.WithContext(ctx).Table("categories").Where("LOWER(name) = LOWER(?)", strings.TrimSpace(product.Category)).Count(&catCount).Error; err != nil {
+		return err
+	}
+	if catCount == 0 {
+		return errors.New("category does not exist: " + product.Category)
+	}
+
 	dbProduct := fromDomainProduct(product)
 	err := r.db.WithContext(ctx).Create(dbProduct).Error
 	if err != nil {
@@ -90,10 +116,18 @@ func (r *productRepo) Create(ctx context.Context, product *domain.Product) error
 	return nil
 }
 
-func (r *productRepo) GetAll(ctx context.Context) ([]domain.Product, error) {
+func (r *productRepo) GetAll(ctx context.Context, limit, offset int) ([]domain.Product, error) {
 	var dbProducts []Product
 
-	err := r.db.WithContext(ctx).Find(&dbProducts).Error
+	query := r.db.WithContext(ctx).Preload("Images")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+
+	err := query.Find(&dbProducts).Error
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +143,7 @@ func (r *productRepo) GetAll(ctx context.Context) ([]domain.Product, error) {
 func (r *productRepo) GetByID(ctx context.Context, id uint) (*domain.Product, error) {
 	var dbProduct Product
 
-	err := r.db.WithContext(ctx).Where("id = ?", id).First(&dbProduct).Error
+	err := r.db.WithContext(ctx).Preload("Images").Where("id = ?", id).First(&dbProduct).Error
 	if err != nil {
 		return nil, err
 	}
@@ -118,6 +152,10 @@ func (r *productRepo) GetByID(ctx context.Context, id uint) (*domain.Product, er
 
 func (r *productRepo) Update(ctx context.Context, product *domain.Product) error {
 	dbProduct := fromDomainProduct(product)
+	// Delete existing images to avoid duplication
+	if err := r.db.WithContext(ctx).Where("product_id = ?", dbProduct.ID).Delete(&ProductImage{}).Error; err != nil {
+		return err
+	}
 	return r.db.WithContext(ctx).Save(dbProduct).Error
 }
 
@@ -125,12 +163,18 @@ func (r *productRepo) Delete(ctx context.Context, id uint) error {
 	return r.db.WithContext(ctx).Delete(&Product{}, id).Error
 }
 
-func (r *productRepo) GetByProduction(ctx context.Context, status string) ([]domain.Product, error) {
+func (r *productRepo) GetByProduction(ctx context.Context, status string, limit, offset int) ([]domain.Product, error) {
 	var dbProducts []Product
 
-	err := r.db.WithContext(ctx).
-		Where("Production = ?", status).
-		Find(&dbProducts).Error
+	query := r.db.WithContext(ctx).Preload("Images").Where("Production = ?", status)
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+
+	err := query.Find(&dbProducts).Error
 
 	if err != nil {
 		return nil, err
@@ -144,13 +188,20 @@ func (r *productRepo) GetByProduction(ctx context.Context, status string) ([]dom
 	return products, nil
 }
 
-func (r *productRepo) Search(ctx context.Context, query string) ([]domain.Product, error) {
+func (r *productRepo) Search(ctx context.Context, query string, limit, offset int) ([]domain.Product, error) {
 	var dbProducts []Product
 
 	searchPattern := "%" + query + "%"
 
-	err := r.db.WithContext(ctx).
-		Where("name ILIKE ?", searchPattern).Find(&dbProducts).Error
+	dbQuery := r.db.WithContext(ctx).Preload("Images").Where("name ILIKE ?", searchPattern)
+	if limit > 0 {
+		dbQuery = dbQuery.Limit(limit)
+	}
+	if offset > 0 {
+		dbQuery = dbQuery.Offset(offset)
+	}
+
+	err := dbQuery.Find(&dbProducts).Error
 
 	if err != nil {
 		return nil, err
@@ -167,7 +218,7 @@ func (r *productRepo) Search(ctx context.Context, query string) ([]domain.Produc
 func (r *productRepo) GetProducts(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error) {
 	var dbProducts []Product
 
-	query := r.db.WithContext(ctx).Model(&Product{})
+	query := r.db.WithContext(ctx).Preload("Images").Model(&Product{})
 
 	if filter.Search != "" {
 		search := "%" + filter.Search + "%"
@@ -197,6 +248,13 @@ func (r *productRepo) GetProducts(ctx context.Context, filter domain.ProductFilt
 		query = query.Order("id desc")
 	}
 
+	if filter.Limit > 0 {
+		query = query.Limit(filter.Limit)
+	}
+	if filter.Offset > 0 {
+		query = query.Offset(filter.Offset)
+	}
+
 	err := query.Find(&dbProducts).Error
 	if err != nil {
 		return nil, err
@@ -207,5 +265,19 @@ func (r *productRepo) GetProducts(ctx context.Context, filter domain.ProductFilt
 		products = append(products, *p.ToDomain())
 	}
 
+	return products, nil
+}
+
+func (r *productRepo) GetLowStockProducts(ctx context.Context, threshold int) ([]domain.Product, error) {
+	var dbProducts []Product
+	err := r.db.WithContext(ctx).Preload("Images").Where("stock <= ?", threshold).Order("stock asc").Find(&dbProducts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var products []domain.Product
+	for _, p := range dbProducts {
+		products = append(products, *p.ToDomain())
+	}
 	return products, nil
 }

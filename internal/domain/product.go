@@ -27,15 +27,18 @@ type ProductFilter struct {
 	MaxPrice float64 `json:"maxprice"`
 	Sort     string  `json:"sort"`
 	Category string  `json:"category"`
+	Limit    int     `json:"limit"`
+	Offset   int     `json:"offset"`
 }
 
 type ProductRepository interface {
 	Create(ctx context.Context, product *Product) error
-	GetAll(ctx context.Context) ([]Product, error)
+	GetAll(ctx context.Context, limit, offset int) ([]Product, error)
 	GetByID(ctx context.Context, id uint) (*Product, error)
 	Update(ctx context.Context, product *Product) error
 	Delete(ctx context.Context, id uint) error
-	GetByProduction(ctx context.Context, name string) ([]Product, error)
-	Search(ctx context.Context, query string) ([]Product, error)
+	GetByProduction(ctx context.Context, name string, limit, offset int) ([]Product, error)
+	Search(ctx context.Context, query string, limit, offset int) ([]Product, error)
 	GetProducts(ctx context.Context, filter ProductFilter) ([]Product, error)
+	GetLowStockProducts(ctx context.Context, threshold int) ([]Product, error)
 }

@@ -12,7 +12,7 @@ import (
 
 type OrderService interface {
 	PlaceOrder(ctx context.Context, userID uint, addressID uint, paymentMethod string) (string, error)
-	GetOrderHistory(ctx context.Context, userID uint) ([]domain.Order, error)
+	GetOrderHistory(ctx context.Context, userID uint, limit, offset int) ([]domain.Order, error)
 	BuyNow(ctx context.Context, userID, addressID, productID uint, quantity int, paymentMethod string) (string, error)
 	GetOrderDetails(ctx context.Context, userID, orderID uint) ([]domain.OrderItem, error)
 	VerifyPayment(ctx context.Context, razorpayOrderID, razorpayPaymentID, razorpaySignature string) error
@@ -55,9 +55,14 @@ func (s *orderService) PlaceOrder(ctx context.Context, userID uint, addressID ui
 
 		// totalAmount += float64(cartItem.Price) * float64(cartItem.Quantity)
 
+		var img string
+		if len(Pro.Images) > 0 {
+			img = Pro.Images[0]
+		}
+
 		orderItems = append(orderItems, domain.OrderItem{
 			ProductId: Pro.ID,
-			Image:     Pro.Images[0],
+			Image:     img,
 			Quantity:  cartItem.Quantity,
 			Price:     Pro.Price,
 		})
@@ -93,8 +98,8 @@ func (s *orderService) PlaceOrder(ctx context.Context, userID uint, addressID ui
 	return razorpayOrderID, nil
 }
 
-func (s *orderService) GetOrderHistory(ctx context.Context, userID uint) ([]domain.Order, error) {
-	return s.orderRepo.GetAllOrdersByUserID(ctx, userID)
+func (s *orderService) GetOrderHistory(ctx context.Context, userID uint, limit, offset int) ([]domain.Order, error) {
+	return s.orderRepo.GetAllOrdersByUserID(ctx, userID, limit, offset)
 }
 
 func (s *orderService) BuyNow(ctx context.Context, userID, addressID, productID uint, quantity int, paymentMethod string) (string, error) {
@@ -107,9 +112,13 @@ func (s *orderService) BuyNow(ctx context.Context, userID, addressID, productID 
 		return "", errors.New("insufficient stock")
 	}
 	var orderItems []domain.OrderItem
+	var img string
+	if len(Pro.Images) > 0 {
+		img = Pro.Images[0]
+	}
 	orderItems = append(orderItems, domain.OrderItem{
 		ProductId: Pro.ID,
-		Image:     Pro.Images[0],
+		Image:     img,
 		Quantity:  uint(quantity),
 		Price:     Pro.Price,
 	})

@@ -4,11 +4,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/middleware"
+	"gorm.io/gorm"
 )
 
-func SetUpAdminRouter(api fiber.Router, adminH *handler.AdminHandler) {
+func SetUpAdminRouter(api fiber.Router, db *gorm.DB, adminH *handler.AdminHandler) {
 	admin := api.Group("/admin")
-	admin.Use(middleware.Adminmiddleware)
+	admin.Use(middleware.Adminmiddleware(db))
 	{
 		admin.Put("/users/:id", adminH.UpdateUser)
 		admin.Patch("/products/:id/status", adminH.UpdateStatus)
@@ -33,6 +34,18 @@ func SetUpAdminRouter(api fiber.Router, adminH *handler.AdminHandler) {
 		admin.Get("/users/:id/cart", adminH.GetUserCart)
 		admin.Get("/users/:id/wishlist", adminH.GetUserWishlist)
 		admin.Get("/users/:id/addresses", adminH.GetUserAddresses)
+
+		// Categories
+		admin.Post("/categories", adminH.CreateCategory)
+		admin.Get("/categories", adminH.GetAllCategories)
+		admin.Put("/categories/:id", adminH.UpdateCategory)
+		admin.Delete("/categories/:id", adminH.DeleteCategory)
+
+		// Inventory Alerts
+		admin.Get("/inventory/low-stock", adminH.GetLowStockProducts)
+
+		// KPI Analytics
+		admin.Get("/dashboard/kpis", adminH.GetDashboardKPIs)
 	}
 
 }

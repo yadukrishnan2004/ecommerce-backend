@@ -35,11 +35,11 @@ type UserRepository interface {
 	GetByID(ctx context.Context, userID uint) (*User, error)
 	Update(ctx context.Context, user *User) error
 	Delete(ctx context.Context, userId uint) error
-	SearchUsers(ctx context.Context, query string) ([]User, error)
+	SearchUsers(ctx context.Context, query string, limit, offset int) ([]User, error)
 	SaveSignup(ctx context.Context, signup *SignupRequest) error
 	GetSignup(ctx context.Context, email string) (*SignupRequest, error)
 	DeleteSignup(ctx context.Context, email string) error
-	GetAllUsers(ctx context.Context) ([]User, error)
+	GetAllUsers(ctx context.Context, limit, offset int) ([]User, error)
 }
 
 type SignupRequest struct {
