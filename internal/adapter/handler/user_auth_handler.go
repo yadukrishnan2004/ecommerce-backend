@@ -71,6 +71,7 @@ func (h *UserHandler) OtpVerify(c *fiber.Ctx) error {
 		HTTPOnly: true,
 		Secure:   false,
 		SameSite: "Lax",
+		Path:     "/",
 	}
 
 	c.Cookie(&cookie)
@@ -104,6 +105,7 @@ func (h *UserHandler) SignIn(c *fiber.Ctx) error {
 		HTTPOnly: true,
 		Secure:   false,
 		SameSite: "Lax",
+		Path:     "/",
 	}
 
 	c.Cookie(&cookie)
@@ -115,9 +117,9 @@ func (h *UserHandler) SignIn(c *fiber.Ctx) error {
 		HTTPOnly: true,
 		Secure:   false,
 		SameSite: "Lax",
+		Path:     "/",
 	}
 
-	c.Cookie(&cookie)
 	c.Cookie(&refresh)
 
 	return response.Response(c, http.StatusOK, "login successful", userdata, nil)
@@ -129,6 +131,7 @@ func (h *UserHandler) Logout(c *fiber.Ctx) error {
 		Value:    "",
 		Expires:  time.Now().Add(-time.Hour),
 		HTTPOnly: true,
+		Path:     "/",
 	}
 
 	c.Cookie(&cookie)
@@ -137,6 +140,7 @@ func (h *UserHandler) Logout(c *fiber.Ctx) error {
 		Value:    "",
 		Expires:  time.Now().Add(-time.Hour),
 		HTTPOnly: true,
+		Path:     "/",
 	}
 
 	c.Cookie(&refresh)
@@ -169,6 +173,7 @@ func (h *UserHandler) Forgotpassword(c *fiber.Ctx) error {
 		HTTPOnly: true,
 		Secure:   false,
 		SameSite: "Lax",
+		Path:     "/",
 	}
 	c.Cookie(&cookie)
 	return response.Response(c, http.StatusOK, fmt.Sprintf("otp is send to your %s", getemail.Email), nil, nil)
@@ -202,6 +207,7 @@ func (h *UserHandler) Resetpassword(c *fiber.Ctx) error {
 		Value:    "",
 		Expires:  time.Now().Add(-time.Hour),
 		HTTPOnly: true,
+		Path:     "/",
 	}
 
 	c.Cookie(&cookie)

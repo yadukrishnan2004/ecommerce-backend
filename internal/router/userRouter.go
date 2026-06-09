@@ -13,19 +13,19 @@ func SetUpUserRouter(api fiber.Router, db *gorm.DB, userH *handler.UserHandler) 
 
 	// PUBLIC ROUTES
 	{
-		userRoutes.Post("/signup", userH.SignUp)
-		userRoutes.Post("/verify", userH.OtpVerify)
-		userRoutes.Post("/login", userH.SignIn)
-		userRoutes.Post("/forgot-password", userH.Forgotpassword)
-		userRoutes.Get("/allproducts", userH.GetAll)
-		userRoutes.Get("/search", userH.SearchProducts)
-		userRoutes.Get("/filter", userH.FilterProducts)
-		userRoutes.Get("/products/:id", userH.GetProduct) 
+		userRoutes.Post(UserSignup, userH.SignUp)
+		userRoutes.Post(UserVerify, userH.OtpVerify)
+		userRoutes.Post(UserLogin, userH.SignIn)
+		userRoutes.Post(UserForgotPassword, userH.Forgotpassword)
+		userRoutes.Get(UserAllProducts, userH.GetAll)
+		userRoutes.Get(UserSearchProducts, userH.SearchProducts)
+		userRoutes.Get(UserFilterProducts, userH.FilterProducts)
+		userRoutes.Get(UserProductDetail, userH.GetProduct) 
 	}
 
 	// SPECIAL ROUTES (Reset Token Required)
 	{
-		userRoutes.Post("/reset-password", middleware.ResetMiddleware, userH.Resetpassword)
+		userRoutes.Post(UserResetPassword, middleware.ResetMiddleware, userH.Resetpassword)
 	}
 
 	// AUTHENTICATED ROUTES (JWT Required)
@@ -34,11 +34,11 @@ func SetUpUserRouter(api fiber.Router, db *gorm.DB, userH *handler.UserHandler) 
 	protected.Use(middleware.UserMiddleware(db))
 
 	{
-		protected.Post("/logout", userH.Logout)
-		protected.Put("/profile", userH.UpdateProfile)
-		protected.Get("/profile", userH.GetProfile)
-		protected.Get("/:id/orders", userH.GetOrder)
-		protected.Put("/:id/cancel", userH.CancelOrder)
-		protected.Get("/:id/orders/details", userH.GetOrderProduct)
+		protected.Post(UserLogout, userH.Logout)
+		protected.Put(UserUpdateProfile, userH.UpdateProfile)
+		protected.Get(UserGetProfile, userH.GetProfile)
+		protected.Get(UserOrders, userH.GetOrder)
+		protected.Put(UserOrderCancel, userH.CancelOrder)
+		protected.Get(UserOrderDetails, userH.GetOrderProduct)
 	}
 }

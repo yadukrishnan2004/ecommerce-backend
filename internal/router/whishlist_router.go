@@ -11,9 +11,9 @@ func SetupWishlistRoutes(api fiber.Router, db *gorm.DB, wishH *handler.WishlistH
 	wish := api.Group("/wishlist")
 	wish.Use(middleware.UserMiddleware(db))
 	{
-		wish.Post("/:id", wishH.AddToWishlist)
-		wish.Delete("/clear", wishH.ClearWishlist)
-		wish.Delete("/:id", wishH.RemoveFromWishlist)
-		wish.Get("/", wishH.GetWishlist)
+		wish.Post(WishlistAdd, wishH.AddToWishlist)
+		wish.Delete(WishlistClear, wishH.ClearWishlist)
+		wish.Delete(WishlistRemove, wishH.RemoveFromWishlist)
+		wish.Get(WishlistGet, wishH.GetWishlist)
 	}
 }

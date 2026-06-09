@@ -408,10 +408,15 @@ func (s *adminUseCase) GetDashboardKPIs(ctx context.Context) (map[string]interfa
 		return nil, err
 	}
 
+	lowStock, _ := s.productrepo.GetLowStockProducts(ctx, 5)
+	allUsers, _ := s.repo.GetAllUsers(ctx, 0, 0)
+
 	return map[string]interface{}{
 		"gross_merchandise_value": revenue,
 		"total_orders":            orders,
 		"average_order_value":     aov,
 		"top_selling_products":    topProducts,
+		"total_users":             len(allUsers),
+		"low_stock_count":         len(lowStock),
 	}, nil
 }

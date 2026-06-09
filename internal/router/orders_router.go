@@ -11,10 +11,10 @@ func SetupOrderRoutes(api fiber.Router, db *gorm.DB, orderH *handler.OrderHandle
 	order := api.Group("/orders")
 	order.Use(middleware.UserMiddleware(db))
 	{
-		order.Post("/", orderH.PlaceOrder)
-		order.Get("/", orderH.GetOrderHistory)
-		order.Get("/:id", orderH.GetOrder)
-		order.Post("/buy-now", orderH.BuyNow)
-		order.Post("/verify-payment", orderH.VerifyPayment)
+		order.Post(OrderPlace, orderH.PlaceOrder)
+		order.Get(OrderGet, orderH.GetOrderHistory)
+		order.Get(OrderGetByID, orderH.GetOrder)
+		order.Post(OrderBuyNow, orderH.BuyNow)
+		order.Post(OrderVerifyPayment, orderH.VerifyPayment)
 	}
 }

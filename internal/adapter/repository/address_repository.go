@@ -15,13 +15,13 @@ type PostalCode struct {
 
 type Address struct {
 	gorm.Model
-	UserID     uint       `json:"user_id"`
-	Name       string     `json:"name" validate:"required"` 
-	Phone      string     `json:"phone" validate:"required,min=10"`
-	HouseName  string     `json:"house_name" validate:"required"` 
-	Street     string     `json:"street" validate:"required"`
-	PinCode    string     `json:"pin_code" validate:"required"`
-	PostalCode PostalCode `gorm:"foreignKey:PinCode;references:PinCode"`
+	UserID        uint       `json:"user_id"`
+	Name          string     `json:"name" validate:"required"` 
+	Phone         string     `json:"phone" validate:"required,min=10"`
+	HouseName     string     `json:"house_name" validate:"required"` 
+	Street        string     `json:"street" validate:"required"`
+	PostalPinCode string     `gorm:"column:pin_code" json:"pin_code" validate:"required"`
+	PostalCode    PostalCode `gorm:"foreignKey:PostalPinCode;references:PinCode"`
 }
 
 func (a *Address) ToDomain() *domain.Address {
@@ -34,7 +34,7 @@ func (a *Address) ToDomain() *domain.Address {
 		Street:    a.Street,
 		City:      a.PostalCode.City,
 		State:     a.PostalCode.State,
-		PinCode:   a.PinCode,
+		PinCode:   a.PostalPinCode,
 	}
 }
 
@@ -43,12 +43,12 @@ func fromDomainAddress(a *domain.Address) *Address {
 		Model: gorm.Model{
 			ID: a.ID,
 		},
-		UserID:    a.UserID,
-		Name:      a.Name,
-		Phone:     a.Phone,
-		HouseName: a.HouseName,
-		Street:    a.Street,
-		PinCode:   a.PinCode,
+		UserID:        a.UserID,
+		Name:          a.Name,
+		Phone:         a.Phone,
+		HouseName:     a.HouseName,
+		Street:        a.Street,
+		PostalPinCode: a.PinCode,
 	}
 }
 

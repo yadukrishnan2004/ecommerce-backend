@@ -5,27 +5,24 @@ import (
 )
 
 type OrderItem struct {
-	OrderId uint
-	Order   Order `gorm:"foreignkey:OrderId;references:ID"`
-
-	Image string
-
-	ProductId uint
-	Product   Product `gorm:"foreignkey:ProductId;references:ID"`
-
-	Quantity uint
-	Price    float64
+	OrderId   uint    `json:"order_id"`
+	Order     Order   `json:"order" gorm:"foreignkey:OrderId;references:ID"`
+	Image     string  `json:"image"`
+	ProductId uint    `json:"product_id"`
+	Product   Product `json:"product" gorm:"foreignkey:ProductId;references:ID"`
+	Quantity  uint    `json:"quantity"`
+	Price     float64 `json:"price"`
 }
 
 type Order struct {
-	ID                uint
+	ID                uint    `json:"id"`
 	UserID            uint    `json:"user_id"`
 	User              User    `json:"user" gorm:"foreignKey:UserID;references:ID"`
 	AddressID         uint    `json:"address_id"`
 	Address           Address `json:"address" gorm:"foreignKey:AddressID;references:ID"`
 	Status            string  `json:"status"`
-	Quantity          uint
-	TotalAmount       float64 `json:"total"`
+	Quantity          uint    `json:"quantity"`
+	TotalAmount       float64 `json:"total_amount"`
 	PaymentMethod     string  `json:"payment_method"`
 	RazorpayOrderID   string  `json:"razorpay_order_id"`
 	RazorpayPaymentID string  `json:"razorpay_payment_id"`

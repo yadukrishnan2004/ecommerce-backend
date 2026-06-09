@@ -27,6 +27,7 @@ type Config struct {
 
 	RAZORPAY_KEY    string
 	RAZORPAY_SECRET string
+
 }
 
 func getEnv(key, fallback string) string {
@@ -64,6 +65,7 @@ func Load() *Config {
 
 		RAZORPAY_KEY:    getEnv("RAZORPAY_KEY", ""),
 		RAZORPAY_SECRET: getEnv("RAZORPAY_SECRET", ""),
+
 	}
 	return config
 }

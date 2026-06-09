@@ -20,7 +20,7 @@ type WishlistItemView struct {
 	WishlistID uint     `json:"wishlist_id"`
 	ProductID  uint     `json:"product_id"`
 
-	Images     pq.StringArray `gorm:"type:text[]"`
+	Images     pq.StringArray `gorm:"type:text[]" json:"images"`
 	Category   string   `json:"category"`
 	Name       string   `json:"name"`
 

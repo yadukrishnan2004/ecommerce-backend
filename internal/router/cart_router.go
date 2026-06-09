@@ -12,10 +12,10 @@ func SetUpCartRouter(api fiber.Router, db *gorm.DB, cartH *handler.CartHandler){
 	routes:=cart.Group("/")
 	routes.Use(middleware.UserMiddleware(db))
 	{
-		routes.Post("/add",cartH.AddToCart)
-		routes.Delete("/clear", cartH.ClearCart)
-		routes.Delete("/:id", cartH.RemoveItem)
-		routes.Get("/",cartH.GetCart)
-		routes.Put("/:id", cartH.UpdateQuantity)
+		routes.Post(CartAdd, cartH.AddToCart)
+		routes.Delete(CartClear, cartH.ClearCart)
+		routes.Delete(CartRemove, cartH.RemoveItem)
+		routes.Get(CartGet, cartH.GetCart)
+		routes.Put(CartUpdate, cartH.UpdateQuantity)
 	}
 }

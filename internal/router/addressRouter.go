@@ -11,6 +11,6 @@ func SetupAddressRoutes(api fiber.Router, db *gorm.DB, addressH *handler.Address
 	addr := api.Group("/addresses")
 	addr.Use(middleware.UserMiddleware(db))
 
-	addr.Post("/", addressH.AddAddress) 
-	addr.Get("/", addressH.GetAddresses) 
+	addr.Post(AddressPost, addressH.AddAddress) 
+	addr.Get(AddressGet, addressH.GetAddresses) 
 }
