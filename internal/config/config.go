@@ -28,6 +28,7 @@ type Config struct {
 	RAZORPAY_KEY    string
 	RAZORPAY_SECRET string
 
+	AllowedOrigins string
 }
 
 func getEnv(key, fallback string) string {
@@ -38,10 +39,8 @@ func getEnv(key, fallback string) string {
 }
 
 func Load() *Config {
-
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	if err := godotenv.Load(); err != nil {
+		log.Println("Warning: No .env file found, relying on system environment variables")
 	}
 
 	jwtConfig := &JWTConfig{
@@ -50,9 +49,17 @@ func Load() *Config {
 		RefreshTTL: 7 * 24 * 60 * 60,
 	}
 
+	port := os.Getenv("APP_PORT")
+	if port == "" {
+		port = os.Getenv("PORT")
+	}
+	if port == "" {
+		port = "8080"
+	}
+
 	config := &Config{
 		App_Name:       getEnv("App_name", "ecommerce-backend"),
-		App_Port:       getEnv("APP_PORT", "8080"),
+		App_Port:       port,
 		DSN:            getEnv("DSN", ""),
 		JWT:            jwtConfig,
 		SMTP_EMAIL:     getEnv("SMTP_EMAIL", ""),
@@ -66,6 +73,7 @@ func Load() *Config {
 		RAZORPAY_KEY:    getEnv("RAZORPAY_KEY", ""),
 		RAZORPAY_SECRET: getEnv("RAZORPAY_SECRET", ""),
 
+		AllowedOrigins: getEnv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"),
 	}
 	return config
 }
