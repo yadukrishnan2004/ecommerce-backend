@@ -3,11 +3,12 @@ package router
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/config"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/middleware"
 	"gorm.io/gorm"
 )
 
-func SetUpUserRouter(api fiber.Router, db *gorm.DB, userH *handler.UserHandler) {
+func SetUpUserRouter(api fiber.Router, db *gorm.DB, cfg *config.Config, userH *handler.UserHandler) {
 
 	userRoutes := api.Group("/users")
 
@@ -20,18 +21,17 @@ func SetUpUserRouter(api fiber.Router, db *gorm.DB, userH *handler.UserHandler) 
 		userRoutes.Get(UserAllProducts, userH.GetAll)
 		userRoutes.Get(UserSearchProducts, userH.SearchProducts)
 		userRoutes.Get(UserFilterProducts, userH.FilterProducts)
-		userRoutes.Get(UserProductDetail, userH.GetProduct) 
+		userRoutes.Get(UserProductDetail, userH.GetProduct)
 	}
 
 	// SPECIAL ROUTES (Reset Token Required)
 	{
-		userRoutes.Post(UserResetPassword, middleware.ResetMiddleware, userH.Resetpassword)
+		userRoutes.Post(UserResetPassword, middleware.ResetMiddleware(cfg), userH.Resetpassword)
 	}
 
 	// AUTHENTICATED ROUTES (JWT Required)
-
 	protected := userRoutes.Group("/")
-	protected.Use(middleware.UserMiddleware(db))
+	protected.Use(middleware.UserMiddleware(db, cfg))
 
 	{
 		protected.Post(UserLogout, userH.Logout)

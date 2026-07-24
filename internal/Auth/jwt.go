@@ -8,37 +8,51 @@ import (
 )
 
 type JwtService struct {
-	secret []byte
-	AccessTTL 	int32
-	RefreshTTL  int32
+	secret     []byte
+	AccessTTL  int32
+	RefreshTTL int32
 }
 
 func NewJwtService(s *config.JWTConfig) *JwtService {
 	return &JwtService{
-		secret: []byte(s.Secret),
-		AccessTTL: s.AccessTTL,
+		secret:     []byte(s.Secret),
+		AccessTTL:  s.AccessTTL,
 		RefreshTTL: s.RefreshTTL,
 	}
 }
 
-func (j *JwtService) GenerateToken(u uint, ttl int32,role string)(string,error){
-	claims:=jwt.MapClaims{
-		"sub":u,
-		"role":role,
-		"exp":time.Now().Add(time.Duration(ttl)*time.Second).Unix(),
-		"iat":time.Now().Unix(),
+func (j *JwtService) GenerateToken(u uint, ttl int32, role string) (string, error) {
+	claims := jwt.MapClaims{
+		"sub":  u,
+		"role": role,
+		"type": "access",
+		"exp":  time.Now().Add(time.Duration(ttl) * time.Second).Unix(),
+		"iat":  time.Now().Unix(),
 	}
-	t:=jwt.NewWithClaims(jwt.SigningMethodHS256,claims)
+	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return t.SignedString(j.secret)
 }
 
-func (j *JwtService) GenerateAuthToken(r,u string, ttl int32)(string,error){
-	claims:=jwt.MapClaims{
-		"sub":u,
-		"role":r,
-		"exp":time.Now().Add(time.Duration(ttl)*time.Second).Unix(),
-		"iat":time.Now().Unix(),
+func (j *JwtService) GenerateRefreshToken(u uint, ttl int32, role string) (string, error) {
+	claims := jwt.MapClaims{
+		"sub":  u,
+		"role": role,
+		"type": "refresh",
+		"exp":  time.Now().Add(time.Duration(ttl) * time.Second).Unix(),
+		"iat":  time.Now().Unix(),
 	}
-	t:=jwt.NewWithClaims(jwt.SigningMethodHS256,claims)
+	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return t.SignedString(j.secret)
+}
+
+func (j *JwtService) GenerateAuthToken(role, email string, ttl int32) (string, error) {
+	claims := jwt.MapClaims{
+		"sub":  email,
+		"role": role,
+		"type": "auth",
+		"exp":  time.Now().Add(time.Duration(ttl) * time.Second).Unix(),
+		"iat":  time.Now().Unix(),
+	}
+	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return t.SignedString(j.secret)
 }

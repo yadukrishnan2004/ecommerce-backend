@@ -3,13 +3,14 @@ package router
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/adapter/handler"
+	"github.com/yadukrishnan2004/ecommerce-backend/internal/config"
 	"github.com/yadukrishnan2004/ecommerce-backend/internal/middleware"
 	"gorm.io/gorm"
 )
 
-func SetUpAdminRouter(api fiber.Router, db *gorm.DB, adminH *handler.AdminHandler) {
+func SetUpAdminRouter(api fiber.Router, db *gorm.DB, cfg *config.Config, adminH *handler.AdminHandler) {
 	admin := api.Group("/admin")
-	admin.Use(middleware.Adminmiddleware(db))
+	admin.Use(middleware.Adminmiddleware(db, cfg))
 	{
 		admin.Put(AdminUpdateUser, adminH.UpdateUser)
 		admin.Patch(AdminUpdateProdStatus, adminH.UpdateStatus)
@@ -47,5 +48,4 @@ func SetUpAdminRouter(api fiber.Router, db *gorm.DB, adminH *handler.AdminHandle
 		// KPI Analytics
 		admin.Get(AdminDashboardKpis, adminH.GetDashboardKPIs)
 	}
-
 }

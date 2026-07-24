@@ -59,7 +59,7 @@ func InitializeDependencies(
 	addressHandler := handler.NewAddressHandler(addressUsecase)
 
 	// Routes
-	router.SetUpRouter(app, db, userHandler, adminHandler, cartHandler, wishHandler, orderHandler, addressHandler)
+	router.SetUpRouter(app, db, cfg, userHandler, adminHandler, cartHandler, wishHandler, orderHandler, addressHandler)
 }
 
 func StartServer(app *fiber.App, cfg *config.Config) {
