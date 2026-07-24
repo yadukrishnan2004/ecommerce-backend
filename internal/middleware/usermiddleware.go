@@ -18,125 +18,135 @@ func UserMiddleware(db *gorm.DB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		token := c.Cookies("jwt")
 
-		if token == "" {
+	if token == "" {
 			authHead := c.Get("Authorization")
 			if strings.HasPrefix(authHead, "Bearer ") {
 				token = strings.TrimPrefix(authHead, "Bearer ")
 			}
-		}
+	}
 
-		var stoken *jwt.Token
-		var err error
-		if token != "" {
+	var stoken *jwt.Token
+	var err error
+	if token != "" {
 			stoken, err = jwt.Parse(token, func(t *jwt.Token) (any, error) {
 				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, fiber.ErrUnauthorized
 				}
 				return []byte(os.Getenv("JWT_SECRET")), nil
 			})
-		}
+	}
 
-		// Try to refresh token if access token is missing or expired
-		if token == "" || (err != nil && errors.Is(err, jwt.ErrTokenExpired)) {
-			refreshToken := c.Cookies("refresh")
-			if refreshToken == "" {
-				refreshToken = c.Get("X-Refresh-Token")
-			}
-			if refreshToken == "" {
-				return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "session expired")
-			}
+	// Try to refresh token if access token is missing or expired
+	if token == "" || (err != nil && errors.Is(err, jwt.ErrTokenExpired)) {
+		refreshToken := c.Cookies("refresh")
+		if refreshToken == "" {
+			refreshToken = c.Get("X-Refresh-Token")
+	}
+		if refreshToken == "" {
+			return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "session expired")
+	}
 
-			rtoken, rerr := jwt.Parse(refreshToken, func(t *jwt.Token) (any, error) {
+		 rtoken, rerr := jwt.Parse(refreshToken, func(t *jwt.Token) (any, error) {
 				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, fiber.ErrUnauthorized
 				}
 				return []byte(os.Getenv("JWT_SECRET")), nil
 			})
 
-			if rerr != nil {
+		if rerr != nil {
 				return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, rerr.Error())
-			}
-			if !rtoken.Valid {
-				return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "invalid refresh token")
-			}
+	}
+		if !rtoken.Valid {
+			return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "invalid refresh token")
+	}
 
-			cl, ok := rtoken.Claims.(jwt.MapClaims)
-			if !ok {
-				return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "invalid refresh claims")
-			}
+		cl, ok := rtoken.Claims.(jwt.MapClaims)
+		if !ok {
+			return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "invalid refresh claims")
+		}
 
-			secret := os.Getenv("JWT_SECRET")
-			newClaims := jwt.MapClaims{
-				"sub":  cl["sub"],
+		secret := os.Getenv("JWT_SECRET")
+		newClaims := jwt.MapClaims{
+			"sub":  cl["sub"],
 				"role": cl["role"],
 				"exp":  time.Now().Add(15 * time.Minute).Unix(),
 				"iat":  time.Now().Unix(),
 			}
 
-			t := jwt.NewWithClaims(jwt.SigningMethodHS256, newClaims)
-			signedToken, signErr := t.SignedString([]byte(secret))
-			if signErr != nil {
-				return response.Response(c, http.StatusInternalServerError, "error", nil, "failed to generate new access token")
-			}
+		t := jwt.NewWithClaims(jwt.SigningMethodHS256, newClaims)
+		signedToken, signErr := t.SignedString([]byte(secret))
+		if signErr != nil {
+			return response.Response(c, http.StatusInternalServerError, "error", nil, "failed to generate new access token")
+		}
 
-			c.Cookie(&fiber.Cookie{
+		c.Cookie(&fiber.Cookie{
 				Name:     "jwt",
 				Value:    signedToken,
 				Expires:  time.Now().Add(15 * time.Minute),
 				HTTPOnly: true,
 				Path:     "/",
 			})
-			c.Set("Authorization", "Bearer "+signedToken)
+		c.Set("Authorization", "Bearer "+signedToken)
 
 			role, _ := cl["role"].(string)
 			if role != "user" && role != "admin" {
 				return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "you cannot access this")
 			}
 
+			userID := getIDFromClaim(cl["sub"])
+		if userID == 0 {
+				return response.Response(c, http.StatusUnauthorized, "unauthrized", nil, "invalid user claims")
+			}
+
 			// Check user status in database
 			var user repository.User
-			if err := db.Where("id = ?", cl["sub"]).First(&user).Error; err != nil {
-				return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "user not found")
+			if err := db.Where("id = ?", userID).First(&user).Error; err != nil {
+				return response.Response(c, http.StatusUnauthorized, "unauthrized", nil, "user not found")
 			}
 			if user.IsBlocked {
-				return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "your account has been blocked")
+				return response.Response(c, http.StatusUnauthorized, "unauthrized", nil, "your account has been blocked")
 			}
 			if !user.IsActive {
-				return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "your account is inactive")
+				return response.Response(c, http.StatusUnauthorized, "unauthrized", nil, "your account is inactive")
 			}
 
-			c.Locals("userid", cl["sub"])
+			c.Locals("userid", float64(userID))
 			return c.Next()
-		}
-
-		if err != nil {
-			return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, err.Error())
-		}
-
-		if !stoken.Valid {
-			return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "invalid token")
-		}
-		claims, ok := stoken.Claims.(jwt.MapClaims)
-		if !ok {
-			return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "invalid claims")
-		}
-		if claims["role"] != "user" && claims["role"] != "admin" {
-			return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "you cannot access this")
-		}
-
-		// Check user status in database
-		var user repository.User
-		if err := db.Where("id = ?", claims["sub"]).First(&user).Error; err != nil {
-			return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "user not found")
-		}
-		if user.IsBlocked {
-			return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "your account has been blocked")
-		}
-		if !user.IsActive {
-			return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "your account is inactive")
-		}
-
-		c.Locals("userid", claims["sub"])
-		return c.Next()
 	}
+
+	if err != nil {
+		return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, err.Error())
+	}
+
+	if !stoken.Valid {
+		return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "invalid token")
+	}
+	claims, ok := stoken.Claims.(jwt.MapClaims)
+	if !ok {
+		return response.Response(c, http.StatusUnauthorized, "unauthrized", nil, "invalid claims")
+	}
+	if claims["role"] != "user" && claims["role"] != "admin" {
+		return response.Response(c, http.StatusUnauthorized, "unauthrized", nil, "your cannot access this")
+	}
+
+	userID := getIDFromClaim(claims["sub"])
+	if userID == 0 {
+		return response.Response(c, http.StatusUnauthorized, "unauthrized", nil, "invalid user claims")
+	}
+
+	// Check user status in database
+	var user repository.User
+	if err := db.Where("id = ?", userID).First(&user).Error; err != nil {
+		return response.Response(c, http.StatusUnauthorized, "unauthorized", nil, "user not found")
+	}
+	if user.IsBlocked {
+		return response.Response(c, http.StatusUnauthorized, "unauthrized", nil, "your account has been blocked")
+	}
+	if !user.IsActive {
+		return response.Response(c, http.StatusUnauthorized, "unauthrized", nil, "your account is inactive")
+	}
+
+	c.Locals("userid", float64(userID))
+	return c.Next()
+}
 }
